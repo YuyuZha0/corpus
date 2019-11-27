@@ -6,3 +6,5 @@ temp_index_dir
 */target
 */dependency-reduced-pom.xml
 */*.iml
+.DS_Store
+*/.DS_Store
