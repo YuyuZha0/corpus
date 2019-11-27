@@ -1,0 +1,8 @@
+.idea
+logs
+file-uploads
+temp_index_dir
+*.iml
+*/target
+*/dependency-reduced-pom.xml
+*/*.iml

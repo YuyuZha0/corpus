@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="*" http-equiv="Access-Control-Allow-Origin"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>古诗文检索</title>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/css/ion.rangeSlider.min.css"/>
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Comic Sans MS", "Courier New", "Arial", "Helvetica", "Kaiti", "STKaiti", "Microsoft YaHei", sans-serif;
+            background-color: #f4efd3;
+            background-repeat: no-repeat;
+        }
+
+        .poetry-top-banner {
+            background-color: #1f6650;
+            height: 2em;
+            margin-top: 0;
+            width: 100%;
+        }
+
+        @keyframes fadein {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        #search-result-box .card {
+            animation: 1s fadein;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h3 class="pb-2 mt-4 mb-2 border-bottom">
+        古诗文检索
+    </h3>
+    <div class="input-group input-group-lg mb-3 mt-3">
+        <input type="text" class="form-control border-primary" id="search-input1" placeholder="标题/作者/朝代/关键字..."
+               aria-label="..."
+               aria-describedby="button-addon2">
+        <div class="input-group-append">
+            <button class="btn btn-info" type="button" id="search-btn1">提交</button>
+        </div>
+    </div>
+    <div class="col-md-12 mt-2">
+        <img src="static/xiakexing.png" alt="..." class="img-fluid rounded">
+        <div id="search-result-box" class="row justify-content-center">
+        </div>
+    </div>
+    <footer id="sticky-footer" class="mt-4 py-4 bg-dark text-white-50">
+        <div class="container text-center">
+            <small>Copyright &copy; Power by YuyuZha0@github.com</small>
+        </div>
+    </footer>
+</div>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+    $.getScript('static/main.js');
+</script>
+</body>
+</html>
