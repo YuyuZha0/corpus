@@ -5,7 +5,7 @@
         return `<div class="col-md-8"><div class="mx-auto mt-2 card shadow"><div class="poetry-top-banner"></div><div class="card-body">
 <h5 class="card-title text-center">${preprocessString(obj.title)}</h5>
 <h6 class="card-subtitle text-secondary text-center">${preprocessString(obj.subtitle)}</h6>
-<h6 class="card-text mb-2 text-info text-center">${preprocessString(obj.dynasty)}&nbsp;○&nbsp;${preprocessString(obj.author)}&nbsp;○&nbsp;${preprocessString(obj.type)}</h6>
+<h6 class="card-text mb-2 text-info text-center">${preprocessString(obj.dynasty)}&nbsp;○&nbsp;${preprocessString(obj.author)}</h6>
 <p class="card-text text-justify">${preprocessString(obj.content)}</p>
 </div></div></div>`;
     };
