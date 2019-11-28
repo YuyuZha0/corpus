@@ -8,10 +8,10 @@ import com.github.poetry.json.ShiJingItem;
 import com.github.poetry.json.WuDaiItem;
 import com.github.poetry.source.JsonFileSource;
 import com.github.poetry.source.JsonLineFileSource;
+import com.github.poetry.source.MultiJsonFileSource;
 import com.github.poetry.source.PoetrySource;
 import com.github.poetry.text.PoetryAnalyzerFactory;
 import com.github.poetry.transform.CiTransformer;
-import com.github.poetry.transform.PoetryTransformer;
 import com.github.poetry.transform.QuTransformer;
 import com.github.poetry.transform.ShiJingItemTransformer;
 import com.github.poetry.transform.ShiTransformer;
@@ -32,10 +32,10 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 /**
  * @author zhaoyuyu
@@ -43,8 +43,6 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 public final class IndexApp {
-
-  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("[a-z0-9.\\-]+\\.json");
 
   public static void main(String[] args) throws IOException {
     Options options = new Options();
@@ -67,66 +65,70 @@ public final class IndexApp {
     String indexPath = commandLine.getOptionValue('o');
     String inputRoot = commandLine.getOptionValue('i');
     log.info("creating lucene index in path: [{}], input root is: [{}]", indexPath, inputRoot);
-    try (FSDirectory fsDirectory = FSDirectory.open(Paths.get(indexPath))) {
 
+    List<? extends PoetrySource> poetrySources =
+        Arrays.asList(
+            createShiSource(inputRoot),
+            createCiSource(inputRoot),
+            createQuSource(inputRoot),
+            createShiJingSource(inputRoot),
+            createWudaiSource(inputRoot));
+    Set<Long> contentHashSet = new HashSet<>(25000);
+    try (FSDirectory fsDirectory = FSDirectory.open(Paths.get(indexPath))) {
       IndexWriterConfig config = new IndexWriterConfig(new PoetryAnalyzerFactory().get());
       config.setOpenMode(OpenMode.CREATE_OR_APPEND);
-
+      int indexCount = 0, duplicationCount = 0;
       try (IndexWriter indexWriter = new IndexWriter(fsDirectory, config)) {
-        addFromFiles(new File(inputRoot + "/json"), indexWriter, Shi.class, ShiTransformer::new);
-        addFromFiles(new File(inputRoot + "/ci"), indexWriter, Ci.class, f -> new CiTransformer());
-        addFromFile(
-            indexWriter,
-            new JsonLineFileSource<>(
-                new File(inputRoot + "/yuanqu/yuanqu.json"), Qu.class, new QuTransformer()));
-        addFromFile(
-            indexWriter,
-            new JsonFileSource<>(
-                new File(inputRoot + "/shijing/shijing.json"),
-                ShiJingItem.class,
-                new ShiJingItemTransformer()));
-        addFromFiles(
-            new File(inputRoot + "/wudai/huajianji"),
-            indexWriter,
-            WuDaiItem.class,
-            f -> new WuDaiItemTransformer());
-        addFromFile(
-            indexWriter,
-            new JsonFileSource<>(
-                new File(inputRoot + "/wudai/nantang/poetrys.json"),
-                WuDaiItem.class,
-                new WuDaiItemTransformer()));
+        for (PoetrySource poetrySource : poetrySources) {
+          List<GeneralChinesePoetry> poetryList = poetrySource.get();
+          for (GeneralChinesePoetry poetry : poetryList) {
+            long contentHash = poetry.contentHash();
+            if (contentHashSet.add(contentHash)) {
+              indexWriter.addDocument(poetry.toLuceneDocument());
+              ++indexCount;
+            } else {
+              ++duplicationCount;
+            }
+          }
+          indexWriter.flush();
+          indexWriter.commit();
+        }
       }
-      log.info("indexing finished!");
+      log.info("indexing finished, [{}] indexed, [{}] duplicated.", indexCount, duplicationCount);
     }
   }
 
-  private static <T> void addFromFiles(
-      File root,
-      IndexWriter writer,
-      Class<? extends T> clazz,
-      Function<File, ? extends PoetryTransformer<? super T>> factory)
-      throws IOException {
-    if (!root.exists() || !root.isDirectory()) {
-      throw new IllegalArgumentException("illegal root:" + root.getAbsolutePath());
-    }
-    File[] files =
-        root.listFiles((f, n) -> !n.contains("author") && FILE_NAME_PATTERN.matcher(n).matches());
-    Objects.requireNonNull(files);
-    log.info("[{}] file(s) found.", files.length);
-    for (File file : files) {
-      JsonFileSource<?> jsonFileSource = new JsonFileSource<>(file, clazz, factory.apply(file));
-      addFromFile(writer, jsonFileSource);
-    }
+  private static PoetrySource createShiSource(String root) {
+    return new MultiJsonFileSource<>(
+        new File(root + "/json"),
+        Shi.class,
+        ShiTransformer::new,
+        name -> name.startsWith("poet") && name.endsWith("json"));
   }
 
-  private static void addFromFile(IndexWriter writer, PoetrySource source) throws IOException {
+  private static PoetrySource createCiSource(String root) {
+    return new MultiJsonFileSource<>(
+        new File(root + "/ci"),
+        Ci.class,
+        f -> new CiTransformer(),
+        name -> name.startsWith("ci") && name.endsWith("json"));
+  }
 
-    List<GeneralChinesePoetry> poetryList = source.get();
-    for (GeneralChinesePoetry generalChinesePoetry : poetryList) {
-      writer.addDocument(generalChinesePoetry.toLuceneDocument());
-    }
-    writer.flush();
-    writer.commit();
+  private static PoetrySource createWudaiSource(String root) {
+    return new MultiJsonFileSource<>(
+        new File(root + "/wudai"),
+        WuDaiItem.class,
+        f -> new WuDaiItemTransformer(),
+        name -> "poetrys.json".equals(name) || name.endsWith("juan.json"));
+  }
+
+  private static PoetrySource createShiJingSource(String root) {
+    return new JsonFileSource<>(
+        new File(root + "/shijing/shijing.json"), ShiJingItem.class, new ShiJingItemTransformer());
+  }
+
+  private static PoetrySource createQuSource(String root) {
+    return new JsonLineFileSource<>(
+        new File(root + "/yuanqu/yuanqu.json"), Qu.class, new QuTransformer());
   }
 }

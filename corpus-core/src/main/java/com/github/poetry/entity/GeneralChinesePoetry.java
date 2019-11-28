@@ -1,5 +1,7 @@
 package com.github.poetry.entity;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,9 +16,9 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexableField;
 
 import java.io.Serializable;
+import java.lang.Character.UnicodeScript;
 import java.util.EnumMap;
 import java.util.function.BiFunction;
-import java.util.regex.Pattern;
 
 /**
  * @author zhaoyuyu
@@ -30,7 +32,7 @@ import java.util.regex.Pattern;
 public final class GeneralChinesePoetry implements Serializable {
 
   private static final FieldEnum[] FIELD_ENUMS = FieldEnum.values();
-  private static final Pattern CN_PTN = Pattern.compile("\\b[\u4e00-\u9fa5]|\u4e00-\u9fa5]\\b");
+  // private static final Pattern CN_PTN = Pattern.compile("\\b[\u4e00-\u9fa5]|\u4e00-\u9fa5]\\b");
   private final String title;
   private final String subtitle;
   private final String author;
@@ -38,7 +40,8 @@ public final class GeneralChinesePoetry implements Serializable {
   private final String dynasty;
   private final String type;
 
-  public static GeneralChinesePoetry fromLuceneDocument(@NonNull Document document) throws Exception {
+  public static GeneralChinesePoetry fromLuceneDocument(@NonNull Document document)
+      throws Exception {
     return new GeneralChinesePoetry(
         getFieldValue(FieldEnum.TITLE, document),
         getFieldValue(FieldEnum.SUBTITLE, document),
@@ -54,6 +57,11 @@ public final class GeneralChinesePoetry implements Serializable {
       return field.stringValue();
     }
     return null;
+  }
+
+  private static boolean isChineseCharacter(String s, int index) {
+    int codePoint = s.codePointAt(index);
+    return Character.UnicodeScript.of(codePoint) == UnicodeScript.HAN;
   }
 
   public GeneralChinesePoetry map(@NonNull BiFunction<FieldEnum, String, String> mapper) {
@@ -88,5 +96,19 @@ public final class GeneralChinesePoetry implements Serializable {
       }
     }
     return document;
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  public long contentHash() {
+    String content = this.content;
+    if (content == null || content.isEmpty()) return 0L;
+    int len = content.length();
+    Hasher hasher = Hashing.murmur3_128().newHasher(len);
+    for (int i = 0; i < len; ++i) {
+      if (isChineseCharacter(content, i)) {
+        hasher.putChar(content.charAt(i));
+      }
+    }
+    return hasher.hash().asLong();
   }
 }

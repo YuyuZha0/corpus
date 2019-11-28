@@ -45,7 +45,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.yuyu" level="INFO">
+    <logger name="com.github.poetry" level="INFO">
         <appender-ref ref="SYS"/>
     </logger>
     <logger name="io.vertx" level="INFO">
