@@ -12,6 +12,7 @@ import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BooleanQuery.Builder;
 import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
@@ -29,7 +30,8 @@ import java.util.function.Function;
  */
 final class QueryParser implements Function<String, Query> {
 
-  private static final float TERM_BOOST_FACTOR = 5f;
+  private static final float TERM_BOOST_FACTOR = 3f;
+  private static final float DISJUNCTION_MAX_TIE_BREAKER = 0.15f;
 
   private final Analyzer analyzer;
 
@@ -59,25 +61,25 @@ final class QueryParser implements Function<String, Query> {
   }
 
   private Query makeCompositeQuery(String s) {
-    BooleanQuery.Builder builder = new Builder();
-    builder.add(makeTermQuery(FieldEnum.AUTHOR, s), Occur.SHOULD);
-    builder.add(makeTermQuery(FieldEnum.DYNASTY, s), Occur.SHOULD);
-    builder.add(makeTermQuery(FieldEnum.TYPE, s), Occur.SHOULD);
+    List<Query> disjuncts = new ArrayList<>(6);
+    disjuncts.add(makeTermQuery(FieldEnum.AUTHOR, s));
+    disjuncts.add(makeTermQuery(FieldEnum.DYNASTY, s));
+    disjuncts.add(makeTermQuery(FieldEnum.TYPE, s));
     String[] tokens = tokenize(s);
     if (tokens.length == 0) {
-      return builder.build();
+      return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
     if (tokens.length == 1) {
       String token = tokens[0];
-      builder.add(makeTermQuery(FieldEnum.TITLE, token), Occur.SHOULD);
-      builder.add(makeTermQuery(FieldEnum.SUBTITLE, token), Occur.SHOULD);
-      builder.add(makeTermQuery(FieldEnum.CONTENT, token), Occur.SHOULD);
-      return builder.build();
+      disjuncts.add(makeTermQuery(FieldEnum.TITLE, token));
+      disjuncts.add(makeTermQuery(FieldEnum.SUBTITLE, token));
+      disjuncts.add(makeTermQuery(FieldEnum.CONTENT, token));
+      return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
-    builder.add(makeTokenizedQuery(FieldEnum.TITLE, tokens), Occur.SHOULD);
-    builder.add(makeTokenizedQuery(FieldEnum.SUBTITLE, tokens), Occur.SHOULD);
-    builder.add(makeTokenizedQuery(FieldEnum.CONTENT, tokens), Occur.SHOULD);
-    return builder.build();
+    disjuncts.add(makeTokenizedQuery(FieldEnum.TITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(FieldEnum.SUBTITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(FieldEnum.CONTENT, tokens));
+    return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
   }
 
   private Query makeTermQuery(FieldEnum fieldEnum, String s) {

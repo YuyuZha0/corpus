@@ -76,7 +76,9 @@ public final class WebApp {
         .method(HttpMethod.POST)
         .blockingHandler(new PoetryQueryHandler(indexPath));
     router.route("/").handler(ctx -> ctx.response().sendFile("webroot/index.html").end());
-    router.route("/static/*").handler(StaticHandler.create("webroot/static"));
+    router
+        .route("/static/*")
+        .handler(StaticHandler.create("webroot/static").setDefaultContentEncoding("UTF-8"));
 
     Runtime.getRuntime().addShutdownHook(new Thread(vertx::close));
 
