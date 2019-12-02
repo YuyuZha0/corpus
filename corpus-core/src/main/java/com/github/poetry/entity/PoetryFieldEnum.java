@@ -8,7 +8,7 @@ import java.util.function.Function;
  * @author zhaoyuyu
  * @since 2019/11/19
  */
-public enum FieldEnum {
+public enum PoetryFieldEnum {
   TITLE("title", true, GeneralChinesePoetry::getTitle),
   SUBTITLE("subtitle", true, GeneralChinesePoetry::getSubtitle),
   AUTHOR("author", false, GeneralChinesePoetry::getAuthor),
@@ -20,7 +20,7 @@ public enum FieldEnum {
   public final boolean tokenizable;
   final Function<? super GeneralChinesePoetry, String> getter;
 
-  FieldEnum(String fieldName, boolean tokenizable, Function<? super GeneralChinesePoetry, String> getter) {
+  PoetryFieldEnum(String fieldName, boolean tokenizable, Function<? super GeneralChinesePoetry, String> getter) {
     this.fieldName = fieldName;
     this.tokenizable = tokenizable;
     this.getter = getter;

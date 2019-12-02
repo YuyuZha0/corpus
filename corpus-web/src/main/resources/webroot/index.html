@@ -6,16 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>古诗文检索</title>
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/css/ion.rangeSlider.min.css"/>
     <link href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <style>
-
-        html {
-            position: relative;
-            min-height: 100%;
-        }
-
         body {
             font-family: "Comic Sans MS", "Courier New", "Arial", "Helvetica", "Kaiti", "STKaiti", "Microsoft YaHei", sans-serif;
             background-color: #f6f6f6;
@@ -24,11 +16,10 @@
 
         footer {
             font-family: "Arial", "Helvetica", sans-serif;
-            font-size: 0.5em;
+            font-size: 0.3em;
         }
 
         .poetry-top-banner {
-            background-color: #1f6650;
             height: 2em;
             margin-top: 0;
             width: 100%;
@@ -53,14 +44,35 @@
     <h3 class="pb-2 mt-4 border-bottom">
         古诗文检索
     </h3>
-    <div class="input-group input-group-lg mt-3">
-        <input type="text" class="form-control border-primary" id="search-input1" placeholder="标题/作者/朝代/关键字..."
-               aria-label="..."
-               aria-describedby="button-addon2">
-        <div class="input-group-append">
-            <button class="btn btn-info" type="button" id="search-btn1">提交</button>
+    <form>
+        <div>
+            <div class="input-group input-group-lg">
+                <input type="text" class="form-control border-primary" id="search-input1" placeholder="标题/作者/朝代/关键字..."
+                       aria-label="..."
+                       aria-describedby="button-addon2">
+                <div class="input-group-append">
+                    <button class="btn btn-info" type="button" id="search-btn1">提交</button>
+                </div>
+            </div>
         </div>
-    </div>
+        <div class="float-right">
+            展示&nbsp;
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="showSizeOptions" id="inlineRadio1"
+                       value="10" checked="checked">
+                <label class="form-check-label" for="inlineRadio1">10条</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="showSizeOptions" id="inlineRadio2"
+                       value="20">
+                <label class="form-check-label" for="inlineRadio2">20条</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="showSizeOptions" id="inlineRadio3" value="50">
+                <label class="form-check-label" for="inlineRadio3">50条</label>
+            </div>
+        </div>
+    </form>
     <div id="box-wrapper" class="col-md-12 mt-2 overflow-auto">
         <img src="static/bg.png" class="img-fluid rounded" alt="...">
         <div id="search-result-box" class="row justify-content-center"></div>

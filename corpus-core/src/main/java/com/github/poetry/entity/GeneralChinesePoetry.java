@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
 @Builder
 public final class GeneralChinesePoetry implements Serializable {
 
-  private static final FieldEnum[] FIELD_ENUMS = FieldEnum.values();
+  private static final PoetryFieldEnum[] FIELD_ENUMS = PoetryFieldEnum.values();
   // private static final Pattern CN_PTN = Pattern.compile("\\b[\u4e00-\u9fa5]|\u4e00-\u9fa5]\\b");
   private final String title;
   private final String subtitle;
@@ -43,15 +43,15 @@ public final class GeneralChinesePoetry implements Serializable {
   public static GeneralChinesePoetry fromLuceneDocument(@NonNull Document document)
       throws Exception {
     return new GeneralChinesePoetry(
-        getFieldValue(FieldEnum.TITLE, document),
-        getFieldValue(FieldEnum.SUBTITLE, document),
-        getFieldValue(FieldEnum.AUTHOR, document),
-        getFieldValue(FieldEnum.CONTENT, document),
-        getFieldValue(FieldEnum.DYNASTY, document),
-        getFieldValue(FieldEnum.TYPE, document));
+        getFieldValue(PoetryFieldEnum.TITLE, document),
+        getFieldValue(PoetryFieldEnum.SUBTITLE, document),
+        getFieldValue(PoetryFieldEnum.AUTHOR, document),
+        getFieldValue(PoetryFieldEnum.CONTENT, document),
+        getFieldValue(PoetryFieldEnum.DYNASTY, document),
+        getFieldValue(PoetryFieldEnum.TYPE, document));
   }
 
-  private static String getFieldValue(FieldEnum fieldEnum, Document document) {
+  private static String getFieldValue(PoetryFieldEnum fieldEnum, Document document) {
     IndexableField field = document.getField(fieldEnum.fieldName);
     if (field != null) {
       return field.stringValue();
@@ -64,19 +64,19 @@ public final class GeneralChinesePoetry implements Serializable {
     return Character.UnicodeScript.of(codePoint) == UnicodeScript.HAN;
   }
 
-  public GeneralChinesePoetry map(@NonNull BiFunction<FieldEnum, String, String> mapper) {
+  public GeneralChinesePoetry map(@NonNull BiFunction<PoetryFieldEnum, String, String> mapper) {
     return new GeneralChinesePoetry(
-        mapper.apply(FieldEnum.TITLE, title),
-        mapper.apply(FieldEnum.SUBTITLE, subtitle),
-        mapper.apply(FieldEnum.AUTHOR, author),
-        mapper.apply(FieldEnum.CONTENT, content),
-        mapper.apply(FieldEnum.DYNASTY, dynasty),
-        mapper.apply(FieldEnum.TYPE, type));
+        mapper.apply(PoetryFieldEnum.TITLE, title),
+        mapper.apply(PoetryFieldEnum.SUBTITLE, subtitle),
+        mapper.apply(PoetryFieldEnum.AUTHOR, author),
+        mapper.apply(PoetryFieldEnum.CONTENT, content),
+        mapper.apply(PoetryFieldEnum.DYNASTY, dynasty),
+        mapper.apply(PoetryFieldEnum.TYPE, type));
   }
 
-  public EnumMap<FieldEnum, String> toEnumMap() {
-    EnumMap<FieldEnum, String> map = new EnumMap<>(FieldEnum.class);
-    for (FieldEnum fieldEnum : FIELD_ENUMS) {
+  public EnumMap<PoetryFieldEnum, String> toEnumMap() {
+    EnumMap<PoetryFieldEnum, String> map = new EnumMap<>(PoetryFieldEnum.class);
+    for (PoetryFieldEnum fieldEnum : FIELD_ENUMS) {
       map.put(fieldEnum, fieldEnum.get(this));
     }
     return map;
@@ -84,7 +84,7 @@ public final class GeneralChinesePoetry implements Serializable {
 
   public Document toLuceneDocument() {
     Document document = new Document();
-    for (FieldEnum fieldEnum : FIELD_ENUMS) {
+    for (PoetryFieldEnum fieldEnum : FIELD_ENUMS) {
       String value = fieldEnum.get(this);
       if (StringUtils.isBlank(value)) continue;
       if (fieldEnum.tokenizable) {

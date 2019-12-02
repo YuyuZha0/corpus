@@ -1,6 +1,6 @@
 package com.github.poetry.query;
 
-import com.github.poetry.entity.FieldEnum;
+import com.github.poetry.entity.PoetryFieldEnum;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import lombok.NonNull;
@@ -62,31 +62,31 @@ final class QueryParser implements Function<String, Query> {
 
   private Query makeCompositeQuery(String s) {
     List<Query> disjuncts = new ArrayList<>(6);
-    disjuncts.add(makeTermQuery(FieldEnum.AUTHOR, s));
-    disjuncts.add(makeTermQuery(FieldEnum.DYNASTY, s));
-    disjuncts.add(makeTermQuery(FieldEnum.TYPE, s));
+    disjuncts.add(makeTermQuery(PoetryFieldEnum.AUTHOR, s));
+    disjuncts.add(makeTermQuery(PoetryFieldEnum.DYNASTY, s));
+    disjuncts.add(makeTermQuery(PoetryFieldEnum.TYPE, s));
     String[] tokens = tokenize(s);
     if (tokens.length == 0) {
       return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
     if (tokens.length == 1) {
       String token = tokens[0];
-      disjuncts.add(makeTermQuery(FieldEnum.TITLE, token));
-      disjuncts.add(makeTermQuery(FieldEnum.SUBTITLE, token));
-      disjuncts.add(makeTermQuery(FieldEnum.CONTENT, token));
+      disjuncts.add(makeTermQuery(PoetryFieldEnum.TITLE, token));
+      disjuncts.add(makeTermQuery(PoetryFieldEnum.SUBTITLE, token));
+      disjuncts.add(makeTermQuery(PoetryFieldEnum.CONTENT, token));
       return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
-    disjuncts.add(makeTokenizedQuery(FieldEnum.TITLE, tokens));
-    disjuncts.add(makeTokenizedQuery(FieldEnum.SUBTITLE, tokens));
-    disjuncts.add(makeTokenizedQuery(FieldEnum.CONTENT, tokens));
+    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.TITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.SUBTITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.CONTENT, tokens));
     return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
   }
 
-  private Query makeTermQuery(FieldEnum fieldEnum, String s) {
+  private Query makeTermQuery(PoetryFieldEnum fieldEnum, String s) {
     return new BoostQuery(new TermQuery(new Term(fieldEnum.fieldName, s)), TERM_BOOST_FACTOR);
   }
 
-  private Query makeTokenizedQuery(FieldEnum fieldEnum, String[] tokens) {
+  private Query makeTokenizedQuery(PoetryFieldEnum fieldEnum, String[] tokens) {
     return new PhraseQuery(phraseQuerySlop(tokens), fieldEnum.fieldName, tokens);
   }
 

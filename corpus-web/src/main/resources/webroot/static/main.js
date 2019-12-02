@@ -2,7 +2,7 @@
     'use strict';
 
     const makePoetryHtml = function (obj) {
-        return `<div class="col-md-8"><div class="mx-auto mt-2 card shadow"><div class="poetry-top-banner"></div><div class="card-body">
+        return `<div class="col-md-8"><div class="mx-auto mt-2 card shadow"><div class="poetry-top-banner bg-info"></div><div class="card-body">
 <h5 class="card-title text-center">${preprocessString(obj.title)}</h5>
 <h6 class="card-subtitle text-secondary text-center">${preprocessString(obj.subtitle)}</h6>
 <h6 class="card-text mb-2 text-info text-center">${preprocessString(obj.dynasty)}&nbsp;○&nbsp;${preprocessString(obj.author)}</h6>
@@ -33,12 +33,12 @@
         $searchResultBox.html(htmlList.join(''));
     };
 
-    const queryThenRender = function (query) {
+    const queryThenRender = function (query, maxSize = 10) {
         $.post('api/query-poetry', {
             query: query,
             preTag: '<span class="text-danger">',
             postTag: '</span>',
-            maxSize: 10
+            maxSize: maxSize
         }).done(function (data) {
             if (data.status === 0) {
                 renderSearchResult(data.documents);
@@ -59,7 +59,8 @@
                 $searchInput1.focus();
                 return;
             }
-            queryThenRender(query);
+            const maxSize = parseInt($('input[name="showSizeOptions"]:checked').val());
+            queryThenRender(query, maxSize);
         });
 
         $(document).keyup(function (event) {

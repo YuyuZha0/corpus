@@ -1,7 +1,7 @@
 package com.github.poetry.query;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.poetry.entity.FieldEnum;
+import com.github.poetry.entity.PoetryFieldEnum;
 import com.github.poetry.text.PoetryAnalyzerFactory;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -82,13 +82,13 @@ public final class LuceneFacade {
   }
 
   @RequiredArgsConstructor
-  private static final class TextTransformer implements BiFunction<FieldEnum, String, String> {
+  private static final class TextTransformer implements BiFunction<PoetryFieldEnum, String, String> {
 
     private final Analyzer analyzer;
     private final Highlighter highlighter;
 
     @Override
-    public String apply(FieldEnum fieldEnum, String text) {
+    public String apply(PoetryFieldEnum fieldEnum, String text) {
       if (text != null && fieldEnum.tokenizable) {
         try {
           String hl = highlighter.getBestFragment(analyzer, fieldEnum.fieldName, text);
