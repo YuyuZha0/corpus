@@ -21,7 +21,7 @@ import java.util.Set;
 public final class TraditionalChineseStopWordSet implements StopWordSet {
 
   private static final double DEFAULT_COVERAGE_THRESHOLD = 70;
-  private static final String RESOURCE_NAME = "古籍字频统计.txt";
+  private static final String RESOURCE_NAME = "chinese-word-stat.txt";
 
   private final double coverageThreshold;
 
