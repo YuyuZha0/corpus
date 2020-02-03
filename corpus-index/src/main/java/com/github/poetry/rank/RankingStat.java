@@ -21,19 +21,19 @@ public final class RankingStat {
   private final String author;
 
   @SerializedName("baidu")
-  private final int baidu;
+  private final long baidu;
 
   @SerializedName("so360")
-  private final int so360;
+  private final long so360;
 
   @SerializedName("bing")
-  private final int bing;
+  private final long bing;
 
   @SerializedName("bingLen")
-  private final int bingLen;
+  private final long bingLen;
 
   @SerializedName("google")
-  private final int google;
+  private final long google;
 
   public double calcScore() {
     return Math.log(
