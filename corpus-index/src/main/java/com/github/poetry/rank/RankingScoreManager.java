@@ -1,6 +1,7 @@
 package com.github.poetry.rank;
 
 import com.github.poetry.source.PoetrySource;
+import com.google.common.math.Stats;
 import com.google.gson.reflect.TypeToken;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public final class RankingScoreManager {
 
   private final Map<String, Double> authorMap;
 
+  @SuppressWarnings("UnstableApiUsage")
   public static RankingScoreManager create(String root) {
     final List<RankingStat> statList;
     try {
@@ -46,11 +48,11 @@ public final class RankingScoreManager {
     for (RankingStat stat : statList) {
       double score = stat.calcScore();
       if (Double.isNaN(score) || Double.isInfinite(score) || score <= 0D) {
-        log.warn("invalid score: {}", stat);
+        log.warn("invalid score: {}@{}", score, stat);
         continue;
       }
       totalScore += score;
-      keyMap.put(new RankingKey(stat.getAuthor(), stat.getTitle()), score);
+      keyMap.put(RankingKey.of(stat.getTitle(), stat.getAuthor()), score);
       authorScoreMap.compute(
           stat.getAuthor(),
           (k, v) -> {
@@ -63,8 +65,7 @@ public final class RankingScoreManager {
     }
     Map<String, Double> authorMap = new HashMap<>(authorScoreMap.size());
     for (Entry<String, List<Double>> entry : authorScoreMap.entrySet()) {
-      double avg = entry.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0D);
-      authorMap.put(entry.getKey(), avg);
+      authorMap.put(entry.getKey(), Stats.meanOf(entry.getValue()));
     }
 
     return new RankingScoreManager(totalScore / keyMap.size(), keyMap, authorMap);
@@ -100,14 +101,15 @@ public final class RankingScoreManager {
   private static void addJsonFile(String root, List<File> files) {
     File[] files1 = new File(root).listFiles((f, n) -> n.endsWith("json"));
     if (files1 != null && files1.length > 0) {
+      log.info("[{}] file(s) found at : {}", files1.length, root);
       Collections.addAll(files, files1);
     } else {
-      log.warn("no files found at [{}]", root);
+      log.warn("no files found at : {}", root);
     }
   }
 
   public double getRankingScore(String title, String author) {
-    Double score = keyMap.get(new RankingKey(title, author));
+    Double score = keyMap.get(RankingKey.of(title, author));
     if (score != null) {
       return score / averageScore;
     }

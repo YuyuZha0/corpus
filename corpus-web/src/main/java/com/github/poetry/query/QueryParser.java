@@ -63,7 +63,7 @@ final class QueryParser implements Function<String, Query> {
   }
 
   private Query wrapWithScore(Query in) {
-    return FunctionScoreQuery.boostByValue(in, DoubleValuesSource.fromDoubleField("score"));
+    return FunctionScoreQuery.boostByValue(in, DoubleValuesSource.fromDoubleField(PoetryFieldEnum.SCORE.fieldName));
   }
 
   private Query makeCompositeQuery(String s) {

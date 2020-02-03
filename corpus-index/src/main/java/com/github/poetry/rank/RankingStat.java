@@ -38,11 +38,13 @@ public final class RankingStat {
   private final long google;
 
   public double calcScore() {
-    return Math.log(
-        Math.max(MIN_SCORE, baidu)
-            * Math.max(MIN_SCORE, so360)
-            * Math.max(MIN_SCORE, bing)
-            * Math.max(MIN_SCORE, bingEn)
-            * Math.max(MIN_SCORE, google));
+
+    double score = 1D;
+    score *= Math.log(1 + baidu);
+    score *= Math.log(1 + so360);
+    score *= Math.log(1 + bing);
+    score *= Math.log(1 + bingEn);
+    score *= Math.log(1 + google);
+    return Math.pow(score, 0.2);
   }
 }

@@ -7,12 +7,16 @@ import lombok.RequiredArgsConstructor;
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RankingKey {
 
   private final String author;
 
   private final String title;
+
+  static RankingKey of(String title, String author) {
+    return new RankingKey(author, title);
+  }
 
   @Override
   public boolean equals(Object o) {
