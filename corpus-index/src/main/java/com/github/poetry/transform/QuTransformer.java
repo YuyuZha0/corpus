@@ -12,19 +12,18 @@ public final class QuTransformer implements PoetryTransformer<Qu> {
   @Override
   public GeneralChinesePoetry apply(Qu qu) {
 
-    GeneralChinesePoetry.GeneralChinesePoetryBuilder builder = GeneralChinesePoetry.builder();
+    GeneralChinesePoetry poetry = new GeneralChinesePoetry();
     String[] titles = TransformUtils.splitWithMidDot(qu.getTitle());
     if (titles.length == 1) {
-      builder.title(titles[0]);
-    } else if (titles.length == 2) {
-      builder.title(titles[0]);
-      builder.subtitle(titles[1]);
+      poetry.setTitle(titles[0]);
+    } else if (titles.length >= 2) {
+      poetry.setTitle(titles[0]);
+      poetry.setSubtitle(titles[1]);
     }
-    return builder
-        .content(TransformUtils.joinParagraphs(qu.getParagraphs()))
-        .type("曲")
-        .dynasty("元")
-        .author(qu.getAuthor())
-        .build();
+    poetry.setContent(TransformUtils.joinParagraphs(qu.getParagraphs()));
+    poetry.setType("曲");
+    poetry.setDynasty("元");
+    poetry.setAuthor(qu.getAuthor());
+    return poetry;
   }
 }

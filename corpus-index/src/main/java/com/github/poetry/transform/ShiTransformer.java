@@ -21,19 +21,20 @@ public final class ShiTransformer implements PoetryTransformer<Shi> {
   @Override
   public GeneralChinesePoetry apply(@NonNull Shi shi) {
 
-    GeneralChinesePoetry.GeneralChinesePoetryBuilder builder = GeneralChinesePoetry.builder();
+      GeneralChinesePoetry poetry = new GeneralChinesePoetry();
+
     String[] titles = TransformUtils.splitWithBlank(shi.getTitle());
     if (titles.length == 1) {
-      builder.title(titles[0]);
-    } else if (titles.length == 2) {
-      builder.title(titles[0]);
-      builder.subtitle(titles[1]);
+      poetry.setTitle(titles[0]);
+    } else if (titles.length >= 2) {
+      poetry.setTitle(titles[0]);
+      poetry.setSubtitle(titles[1]);
     }
-    return builder
-        .content(TransformUtils.joinParagraphs(shi.getParagraphs()))
-        .author(shi.getAuthor())
-        .dynasty(dynasty)
-        .type("诗")
-        .build();
+
+    poetry.setContent(TransformUtils.joinParagraphs(shi.getParagraphs()));
+    poetry.setAuthor(shi.getAuthor());
+    poetry.setDynasty(dynasty);
+    poetry.setType("诗");
+    return poetry;
   }
 }

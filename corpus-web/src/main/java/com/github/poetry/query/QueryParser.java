@@ -8,11 +8,13 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BooleanQuery.Builder;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.DisjunctionMaxQuery;
+import org.apache.lucene.search.DoubleValuesSource;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
@@ -58,6 +60,10 @@ final class QueryParser implements Function<String, Query> {
       default:
         return 3;
     }
+  }
+
+  private Query wrapWithScore(Query in) {
+    return FunctionScoreQuery.boostByValue(in, DoubleValuesSource.fromDoubleField("score"));
   }
 
   private Query makeCompositeQuery(String s) {
@@ -113,12 +119,12 @@ final class QueryParser implements Function<String, Query> {
       return new MatchNoDocsQuery();
     }
     if (parts.size() == 1) {
-      return makeCompositeQuery(parts.get(0));
+      return wrapWithScore(makeCompositeQuery(parts.get(0)));
     }
     BooleanQuery.Builder builder = new Builder();
     for (String part : parts) {
       builder.add(makeCompositeQuery(part), Occur.MUST);
     }
-    return builder.build();
+    return wrapWithScore(builder.build());
   }
 }

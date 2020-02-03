@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * @author zhaoyuyu
@@ -17,7 +16,6 @@ import java.util.regex.Pattern;
  */
 public final class TransformUtils {
 
-  private static final Pattern CN_CHAR_PATTERN = Pattern.compile("[\u4e00-\u9fa5/]+");
   private static final String LINE_BREAKER = "<br>";
 
   private TransformUtils() {

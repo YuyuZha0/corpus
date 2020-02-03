@@ -2,6 +2,7 @@ package com.github.poetry.handler;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.query.LuceneFacade;
+import com.github.poetry.text.TextUtils;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -14,7 +15,6 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import java.io.Serializable;
@@ -46,7 +46,7 @@ public final class PoetryQueryHandler implements Handler<RoutingContext> {
     MultiMap multiMap = routingContext.request().formAttributes();
 
     String query = multiMap.get(ParamEnum.QUERY.key);
-    if (StringUtils.isBlank(query)) {
+    if (TextUtils.isBlank(query)) {
       response.setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
       response.end(Json.encode(new SearchResult("empty query!")));
       return;

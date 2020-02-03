@@ -11,12 +11,14 @@ public final class ShiJingItemTransformer implements PoetryTransformer<ShiJingIt
 
   @Override
   public GeneralChinesePoetry apply(ShiJingItem shiJingItem) {
-    return GeneralChinesePoetry.builder()
-        .title(shiJingItem.getTitle())
-        .subtitle(shiJingItem.getChapter() + "\u3000" + shiJingItem.getSection())
-        .content(TransformUtils.joinParagraphs(shiJingItem.getContent()))
-        .dynasty("先秦")
-        .type("诗经")
-        .build();
+
+    GeneralChinesePoetry poetry = new GeneralChinesePoetry();
+    poetry.setTitle(shiJingItem.getTitle());
+    poetry.setSubtitle(shiJingItem.getChapter() + "\u3000" + shiJingItem.getSection());
+    poetry.setContent(TransformUtils.joinParagraphs(shiJingItem.getContent()));
+    poetry.setDynasty("先秦");
+    poetry.setType("诗经");
+    poetry.setAuthor("诗经");
+    return poetry;
   }
 }

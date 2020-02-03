@@ -1,32 +1,23 @@
 package com.github.poetry.entity;
 
-import lombok.NonNull;
-
-import java.util.function.Function;
-
 /**
  * @author zhaoyuyu
  * @since 2019/11/19
  */
 public enum PoetryFieldEnum {
-  TITLE("title", true, GeneralChinesePoetry::getTitle),
-  SUBTITLE("subtitle", true, GeneralChinesePoetry::getSubtitle),
-  AUTHOR("author", false, GeneralChinesePoetry::getAuthor),
-  CONTENT("content", true, GeneralChinesePoetry::getContent),
-  DYNASTY("dynasty", false, GeneralChinesePoetry::getDynasty),
-  TYPE("type", false, GeneralChinesePoetry::getType);
+  TITLE(new TextFieldStrategy("title", GeneralChinesePoetry::getTitle)),
+  SUBTITLE(new TextFieldStrategy("subtitle", GeneralChinesePoetry::getSubtitle)),
+  AUTHOR(new StringFieldStrategy("author", GeneralChinesePoetry::getAuthor)),
+  CONTENT(new TextFieldStrategy("content", GeneralChinesePoetry::getContent)),
+  DYNASTY(new StringFieldStrategy("dynasty", GeneralChinesePoetry::getDynasty)),
+  TYPE(new StringFieldStrategy("type", GeneralChinesePoetry::getType)),
+  SCORE(new DoubleFieldStrategy("score", GeneralChinesePoetry::getScore));
 
   public final String fieldName;
-  public final boolean tokenizable;
-  final Function<? super GeneralChinesePoetry, String> getter;
+  public final FieldStrategy<?> strategy;
 
-  PoetryFieldEnum(String fieldName, boolean tokenizable, Function<? super GeneralChinesePoetry, String> getter) {
-    this.fieldName = fieldName;
-    this.tokenizable = tokenizable;
-    this.getter = getter;
-  }
-
-  public String get(@NonNull GeneralChinesePoetry generalChinesePoetry) {
-    return getter.apply(generalChinesePoetry);
+  PoetryFieldEnum(FieldStrategy<?> strategy) {
+    this.fieldName = strategy.getName();
+    this.strategy = strategy;
   }
 }

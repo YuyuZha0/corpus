@@ -12,19 +12,20 @@ public final class WuDaiItemTransformer implements PoetryTransformer<WuDaiItem> 
   @Override
   public GeneralChinesePoetry apply(WuDaiItem wudaiItem) {
 
-    GeneralChinesePoetry.GeneralChinesePoetryBuilder builder = GeneralChinesePoetry.builder();
+    GeneralChinesePoetry poetry = new GeneralChinesePoetry();
+
     String[] titles = TransformUtils.splitWithMidDot(wudaiItem.getTitle());
     if (titles.length == 1) {
-      builder.title(titles[0]);
-    } else if (titles.length == 2) {
-      builder.title(titles[0]);
-      builder.subtitle(titles[1]);
+      poetry.setTitle(titles[0]);
+    } else if (titles.length >= 2) {
+      poetry.setTitle(titles[0]);
+      poetry.setSubtitle(titles[1]);
     }
-    return builder
-        .author(wudaiItem.getAuthor())
-        .content(TransformUtils.joinParagraphs(wudaiItem.getParagraphs()))
-        .dynasty("五代十国")
-        .type("词")
-        .build();
+
+    poetry.setAuthor(wudaiItem.getAuthor());
+    poetry.setContent(TransformUtils.joinParagraphs(wudaiItem.getParagraphs()));
+    poetry.setDynasty("五代十国");
+    poetry.setType("词");
+    return poetry;
   }
 }

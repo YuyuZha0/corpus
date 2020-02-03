@@ -6,11 +6,13 @@ import com.github.poetry.json.Qu;
 import com.github.poetry.json.Shi;
 import com.github.poetry.json.ShiJingItem;
 import com.github.poetry.json.WuDaiItem;
+import com.github.poetry.rank.RankingScoreManager;
 import com.github.poetry.source.JsonFileSource;
 import com.github.poetry.source.JsonLineFileSource;
 import com.github.poetry.source.MultiJsonFileSource;
 import com.github.poetry.source.PoetrySource;
 import com.github.poetry.text.PoetryAnalyzerFactory;
+import com.github.poetry.text.TextUtils;
 import com.github.poetry.transform.CiTransformer;
 import com.github.poetry.transform.QuTransformer;
 import com.github.poetry.transform.ShiJingItemTransformer;
@@ -66,6 +68,8 @@ public final class IndexApp {
     String inputRoot = commandLine.getOptionValue('i');
     log.info("creating lucene index in path: [{}], input root is: [{}]", indexPath, inputRoot);
 
+    RankingScoreManager rankingScoreManager = RankingScoreManager.create(inputRoot);
+
     List<? extends PoetrySource> poetrySources =
         Arrays.asList(
             createShiSource(inputRoot),
@@ -82,8 +86,11 @@ public final class IndexApp {
         for (PoetrySource poetrySource : poetrySources) {
           List<GeneralChinesePoetry> poetryList = poetrySource.get();
           for (GeneralChinesePoetry poetry : poetryList) {
-            long contentHash = poetry.contentHash();
+            long contentHash = TextUtils.contentHash(poetry.getContent());
             if (contentHashSet.add(contentHash)) {
+              double score =
+                  rankingScoreManager.getRankingScore(poetry.getTitle(), poetry.getAuthor());
+              poetry.setScore(Math.max(score, 0.01D));
               indexWriter.addDocument(poetry.toLuceneDocument());
               ++indexCount;
             } else {

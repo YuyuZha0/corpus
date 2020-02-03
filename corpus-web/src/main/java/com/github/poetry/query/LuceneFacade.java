@@ -76,20 +76,26 @@ public final class LuceneFacade {
     for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
       Document document = indexSearcher.doc(scoreDoc.doc);
       GeneralChinesePoetry poetry = GeneralChinesePoetry.fromLuceneDocument(document);
-      result.add(poetry.map(textTransformer));
+      // 高亮
+      poetry.setTitle(textTransformer.apply(PoetryFieldEnum.TITLE, poetry.getTitle()));
+      poetry.setSubtitle(textTransformer.apply(PoetryFieldEnum.SUBTITLE, poetry.getSubtitle()));
+      poetry.setContent(textTransformer.apply(PoetryFieldEnum.CONTENT, poetry.getContent()));
+
+      result.add(poetry);
     }
     return result;
   }
 
   @RequiredArgsConstructor
-  private static final class TextTransformer implements BiFunction<PoetryFieldEnum, String, String> {
+  private static final class TextTransformer
+      implements BiFunction<PoetryFieldEnum, String, String> {
 
     private final Analyzer analyzer;
     private final Highlighter highlighter;
 
     @Override
     public String apply(PoetryFieldEnum fieldEnum, String text) {
-      if (text != null && fieldEnum.tokenizable) {
+      if (text != null) {
         try {
           String hl = highlighter.getBestFragment(analyzer, fieldEnum.fieldName, text);
           return hl != null ? hl : text;

@@ -12,18 +12,18 @@ public final class CiTransformer implements PoetryTransformer<Ci> {
   @Override
   public GeneralChinesePoetry apply(Ci ci) {
 
-    GeneralChinesePoetry.GeneralChinesePoetryBuilder builder = GeneralChinesePoetry.builder();
+    GeneralChinesePoetry poetry = new GeneralChinesePoetry();
     String[] titles = TransformUtils.splitWithMidDot(ci.getRhythmic());
     if (titles.length == 1) {
-      builder.title(titles[0]);
-    } else if (titles.length == 2) {
-      builder.title(titles[0]);
-      builder.subtitle(titles[1]);
+      poetry.setTitle(titles[0]);
+    } else if (titles.length >= 2) {
+      poetry.setTitle(titles[0]);
+      poetry.setSubtitle(titles[1]);
     }
-    return builder
-        .content(TransformUtils.joinParagraphs(ci.getParagraphs()))
-        .type("词")
-        .dynasty("宋")
-        .build();
+    poetry.setContent(TransformUtils.joinParagraphs(ci.getParagraphs()));
+    poetry.setDynasty("宋");
+    poetry.setType("词");
+    poetry.setAuthor(ci.getAuthor());
+    return poetry;
   }
 }
