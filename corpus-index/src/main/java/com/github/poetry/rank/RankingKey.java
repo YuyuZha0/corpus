@@ -2,7 +2,6 @@ package com.github.poetry.rank;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author zhaoyuyu
@@ -16,7 +15,10 @@ public final class RankingKey {
   private final String title;
 
   static RankingKey of(String title, String author) {
-    return new RankingKey(author, StringUtils.abbreviate(title, 16));
+    if (title != null && title.length() > 16) {
+      title = title.substring(0, 16);
+    }
+    return new RankingKey(author, title);
   }
 
   @Override
