@@ -1,8 +1,5 @@
 package com.github.poetry.json;
 
-import com.github.poetry.entity.GeneralChinesePoetry;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Splitter;
 import com.google.gson.annotations.SerializedName;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

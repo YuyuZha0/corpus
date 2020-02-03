@@ -45,8 +45,8 @@ public final class RankingScoreManager {
     Map<String, List<Double>> authorScoreMap = new HashMap<>();
     for (RankingStat stat : statList) {
       double score = stat.calcScore();
-      if (score <= 0D) {
-        log.warn("0-score: {}", stat);
+      if (Double.isNaN(score) || Double.isInfinite(score) || score <= 0D) {
+        log.warn("invalid score: {}", stat);
         continue;
       }
       totalScore += score;

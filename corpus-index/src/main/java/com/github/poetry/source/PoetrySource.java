@@ -12,5 +12,5 @@ import java.util.function.Supplier;
  */
 public interface PoetrySource extends Supplier<List<GeneralChinesePoetry>> {
 
-    Gson GSON = new Gson();
+  Gson GSON = new Gson();
 }

@@ -21,7 +21,7 @@ public final class ShiTransformer implements PoetryTransformer<Shi> {
   @Override
   public GeneralChinesePoetry apply(@NonNull Shi shi) {
 
-      GeneralChinesePoetry poetry = new GeneralChinesePoetry();
+    GeneralChinesePoetry poetry = new GeneralChinesePoetry();
 
     String[] titles = TransformUtils.splitWithBlank(shi.getTitle());
     if (titles.length == 1) {

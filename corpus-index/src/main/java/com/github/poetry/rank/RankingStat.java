@@ -14,6 +14,8 @@ import lombok.ToString;
 @Getter
 public final class RankingStat {
 
+  private static final double MIN_SCORE = 1;
+
   @SerializedName(value = "title", alternate = "rhythmic")
   private final String title;
 
@@ -29,18 +31,18 @@ public final class RankingStat {
   @SerializedName("bing")
   private final long bing;
 
-  @SerializedName("bingLen")
-  private final long bingLen;
+  @SerializedName("bing_en")
+  private final long bingEn;
 
   @SerializedName("google")
   private final long google;
 
   public double calcScore() {
     return Math.log(
-        Math.max(1, baidu)
-            * Math.max(1, so360)
-            * Math.max(1, bingLen)
-            * Math.max(1, bingLen)
-            * Math.max(1, google));
+        Math.max(MIN_SCORE, baidu)
+            * Math.max(MIN_SCORE, so360)
+            * Math.max(MIN_SCORE, bing)
+            * Math.max(MIN_SCORE, bingEn)
+            * Math.max(MIN_SCORE, google));
   }
 }
