@@ -12,7 +12,7 @@ import java.util.function.Function;
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-public final class StringFieldStrategy implements FieldStrategy<StringField> {
+public final class StringFieldStrategy implements FieldStrategy {
 
   private final String name;
   private final Function<? super GeneralChinesePoetry, String> getter;
@@ -29,12 +29,12 @@ public final class StringFieldStrategy implements FieldStrategy<StringField> {
   }
 
   @Override
-  public StringField apply(GeneralChinesePoetry poetry) {
+  public void appendTo(GeneralChinesePoetry poetry, Document doc) {
     String text = getter.apply(poetry);
     if (TextUtils.isBlank(text)) {
-      return null;
+      return;
     }
-    return new StringField(getName(), text, Store.YES);
+    doc.add(new StringField(getName(), text, Store.YES));
   }
 
   @Override

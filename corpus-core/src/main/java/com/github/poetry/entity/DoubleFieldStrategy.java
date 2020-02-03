@@ -2,6 +2,7 @@ package com.github.poetry.entity;
 
 import lombok.NonNull;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.StoredField;
 
 import java.util.function.ToDoubleFunction;
@@ -10,7 +11,7 @@ import java.util.function.ToDoubleFunction;
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-public final class DoubleFieldStrategy implements FieldStrategy<StoredField> {
+public final class DoubleFieldStrategy implements FieldStrategy {
 
   private final String name;
 
@@ -28,9 +29,10 @@ public final class DoubleFieldStrategy implements FieldStrategy<StoredField> {
   }
 
   @Override
-  public StoredField apply(GeneralChinesePoetry poetry) {
+  public void appendTo(GeneralChinesePoetry poetry, Document doc) {
     double score = getter.applyAsDouble(poetry);
-    return new StoredField(getName(), score);
+    doc.add(new StoredField(getName(), score));
+    doc.add(new DoubleDocValuesField(getName(), score));
   }
 
   @Override

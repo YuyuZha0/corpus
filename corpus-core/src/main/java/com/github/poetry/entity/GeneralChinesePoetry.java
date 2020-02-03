@@ -8,7 +8,6 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
 
 import java.io.Serializable;
 
@@ -55,10 +54,7 @@ public final class GeneralChinesePoetry implements Serializable {
   public Document toLuceneDocument() {
     Document document = new Document();
     for (PoetryFieldEnum fieldEnum : FIELD_ENUMS) {
-      IndexableField field = fieldEnum.strategy.apply(this);
-      if (field != null) {
-        document.add(field);
-      }
+      fieldEnum.strategy.appendTo(this, document);
     }
     return document;
   }

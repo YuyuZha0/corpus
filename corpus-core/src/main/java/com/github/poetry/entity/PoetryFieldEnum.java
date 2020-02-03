@@ -14,9 +14,9 @@ public enum PoetryFieldEnum {
   SCORE(new DoubleFieldStrategy("score", GeneralChinesePoetry::getScore));
 
   public final String fieldName;
-  public final FieldStrategy<?> strategy;
+  public final FieldStrategy strategy;
 
-  PoetryFieldEnum(FieldStrategy<?> strategy) {
+  PoetryFieldEnum(FieldStrategy strategy) {
     this.fieldName = strategy.getName();
     this.strategy = strategy;
   }
