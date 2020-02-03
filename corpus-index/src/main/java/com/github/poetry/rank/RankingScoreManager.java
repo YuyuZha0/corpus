@@ -1,7 +1,7 @@
 package com.github.poetry.rank;
 
 import com.github.poetry.source.PoetrySource;
-import com.google.common.math.Stats;
+import com.google.common.primitives.Doubles;
 import com.google.gson.reflect.TypeToken;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +66,9 @@ public final class RankingScoreManager {
     }
     Map<String, Double> authorMap = new HashMap<>(authorScoreMap.size());
     for (Entry<String, List<Double>> entry : authorScoreMap.entrySet()) {
-      authorMap.put(entry.getKey(), Stats.meanOf(entry.getValue()));
+      double[] scores = Doubles.toArray(entry.getValue());
+      Arrays.sort(scores);
+      authorMap.put(entry.getKey(), scores[(scores.length - 1) >>> 1]);
     }
 
     return new RankingScoreManager(totalScore / keyMap.size(), keyMap, authorMap);
