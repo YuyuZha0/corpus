@@ -1,7 +1,8 @@
 package com.github.poetry.rank;
 
-import com.github.poetry.source.PoetrySource;
+import com.github.poetry.json.GsonFactory;
 import com.google.common.primitives.Doubles;
+import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +30,14 @@ import java.util.Map.Entry;
 @Slf4j
 public final class RankingScoreManager {
 
+  private static final Gson gson = new GsonFactory().get();
+
   private final double averageScore;
 
   private final Map<RankingKey, Double> keyMap;
 
   private final Map<String, Double> authorMap;
 
-  @SuppressWarnings("UnstableApiUsage")
   public static RankingScoreManager create(String root) {
     final List<RankingStat> statList;
     try {
@@ -54,21 +56,15 @@ public final class RankingScoreManager {
       }
       totalScore += score;
       keyMap.put(RankingKey.of(stat.getTitle(), stat.getAuthor()), score);
-      authorScoreMap.compute(
-          stat.getAuthor(),
-          (k, v) -> {
-            if (v == null) {
-              v = new ArrayList<>();
-            }
-            v.add(score);
-            return v;
-          });
+      authorScoreMap
+          .compute(stat.getAuthor(), (k, v) -> v == null ? new ArrayList<>() : v)
+          .add(score);
     }
     Map<String, Double> authorMap = new HashMap<>(authorScoreMap.size());
     for (Entry<String, List<Double>> entry : authorScoreMap.entrySet()) {
       double[] scores = Doubles.toArray(entry.getValue());
       Arrays.sort(scores);
-      authorMap.put(entry.getKey(), scores[(scores.length - 1) >>> 1]);
+      authorMap.put(entry.getKey(), /*中位数*/ scores[(scores.length - 1) >>> 1]);
     }
 
     return new RankingScoreManager(totalScore / keyMap.size(), keyMap, authorMap);
@@ -87,8 +83,7 @@ public final class RankingScoreManager {
     for (File file : files) {
       try (InputStream in = new FileInputStream(file)) {
         List<RankingStat> list =
-            PoetrySource.GSON.fromJson(
-                new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
+            gson.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
         totalLen += list.size();
         listList.add(list);
       }

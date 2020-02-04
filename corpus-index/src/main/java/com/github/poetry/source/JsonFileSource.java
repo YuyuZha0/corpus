@@ -1,7 +1,9 @@
 package com.github.poetry.source;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
+import com.github.poetry.json.GsonFactory;
 import com.github.poetry.transform.PoetryTransformer;
+import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +23,7 @@ import java.util.List;
 @Slf4j
 public final class JsonFileSource<T> implements PoetrySource {
 
+  private final Gson gson = new GsonFactory().get();
   private final File file;
   private final Class<? extends T> clazz;
   private final PoetryTransformer<? super T> transformer;
@@ -41,7 +44,7 @@ public final class JsonFileSource<T> implements PoetrySource {
     log.info("load json from file[{}]...", file.getName());
     try (InputStream in = new FileInputStream(file)) {
       List<T> list =
-          GSON.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
+          gson.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
       List<GeneralChinesePoetry> dump = new ArrayList<>(list.size());
       for (T t : list) {
         dump.add(transformer.apply(t));

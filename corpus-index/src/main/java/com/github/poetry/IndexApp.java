@@ -6,18 +6,22 @@ import com.github.poetry.json.Qu;
 import com.github.poetry.json.Shi;
 import com.github.poetry.json.ShiJingItem;
 import com.github.poetry.json.WuDaiItem;
-import com.github.poetry.rank.RankingScoreManager;
+import com.github.poetry.pipeline.DistinctPipeline;
+import com.github.poetry.pipeline.IndexContext;
+import com.github.poetry.pipeline.Pipeline;
+import com.github.poetry.pipeline.PipelineBuilder;
+import com.github.poetry.pipeline.RankingScorePipeline;
+import com.github.poetry.pipeline.WritingIndexPipeline;
 import com.github.poetry.source.JsonFileSource;
 import com.github.poetry.source.JsonLineFileSource;
 import com.github.poetry.source.MultiJsonFileSource;
 import com.github.poetry.source.PoetrySource;
-import com.github.poetry.text.PoetryAnalyzerFactory;
-import com.github.poetry.text.TextUtils;
 import com.github.poetry.transform.CiTransformer;
 import com.github.poetry.transform.QuTransformer;
 import com.github.poetry.transform.ShiJingItemTransformer;
 import com.github.poetry.transform.ShiTransformer;
 import com.github.poetry.transform.WuDaiItemTransformer;
+import com.google.common.collect.Iterables;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -26,18 +30,12 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author zhaoyuyu
@@ -68,7 +66,11 @@ public final class IndexApp {
     String inputRoot = commandLine.getOptionValue('i');
     log.info("creating lucene index in path: [{}], input root is: [{}]", indexPath, inputRoot);
 
-    RankingScoreManager rankingScoreManager = RankingScoreManager.create(inputRoot);
+    Pipeline pipeline =
+        new PipelineBuilder<DistinctPipeline>()
+            .add(DistinctPipeline::new)
+            .add(next -> new RankingScorePipeline(inputRoot, next))
+            .end(new WritingIndexPipeline(indexPath));
 
     List<? extends PoetrySource> poetrySources =
         Arrays.asList(
@@ -77,32 +79,13 @@ public final class IndexApp {
             createQuSource(inputRoot),
             createShiJingSource(inputRoot),
             createWudaiSource(inputRoot));
-    Set<Long> contentHashSet = new HashSet<>(25000);
-    try (FSDirectory fsDirectory = FSDirectory.open(Paths.get(indexPath))) {
-      IndexWriterConfig config = new IndexWriterConfig(new PoetryAnalyzerFactory().get());
-      config.setOpenMode(OpenMode.CREATE_OR_APPEND);
-      int indexCount = 0, duplicationCount = 0;
-      try (IndexWriter indexWriter = new IndexWriter(fsDirectory, config)) {
-        for (PoetrySource poetrySource : poetrySources) {
-          List<GeneralChinesePoetry> poetryList = poetrySource.get();
-          for (GeneralChinesePoetry poetry : poetryList) {
-            long contentHash = TextUtils.contentHash(poetry.getContent());
-            if (contentHashSet.add(contentHash)) {
-              double score =
-                  rankingScoreManager.getRankingScore(poetry.getTitle(), poetry.getAuthor());
-              poetry.setScore(Math.max(score, 0.01D));
-              indexWriter.addDocument(poetry.toLuceneDocument());
-              ++indexCount;
-            } else {
-              ++duplicationCount;
-            }
-          }
-          indexWriter.flush();
-          indexWriter.commit();
-        }
-      }
-      log.info("indexing finished, [{}] indexed, [{}] duplicated.", indexCount, duplicationCount);
+
+    List<List<GeneralChinesePoetry>> buffer = new ArrayList<>();
+    for (PoetrySource source : poetrySources) {
+      buffer.add(source.get());
     }
+
+    pipeline.process(new IndexContext(), Iterables.concat(buffer));
   }
 
   private static PoetrySource createShiSource(String root) {

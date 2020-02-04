@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,9 +32,9 @@ public final class TraditionalChineseStopWordSet implements StopWordSet {
   public Set<String> get() {
 
     try (InputStream in = getClass().getClassLoader().getResourceAsStream(RESOURCE_NAME)) {
+      assert in != null;
       try (BufferedReader reader =
-          new BufferedReader(
-              new InputStreamReader(Objects.requireNonNull(in), StandardCharsets.UTF_8))) {
+          new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
         Set<String> result = new HashSet<>();
         String line = reader.readLine();
         while (line != null) {

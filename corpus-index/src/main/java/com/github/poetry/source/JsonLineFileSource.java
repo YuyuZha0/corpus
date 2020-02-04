@@ -1,7 +1,9 @@
 package com.github.poetry.source;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
+import com.github.poetry.json.GsonFactory;
 import com.github.poetry.transform.PoetryTransformer;
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
@@ -21,6 +23,7 @@ import java.util.List;
 @Slf4j
 public final class JsonLineFileSource<T> implements PoetrySource {
 
+  private final Gson gson = new GsonFactory().get();
   private final File file;
   private final Class<? extends T> clazz;
   private final PoetryTransformer<? super T> transformer;
@@ -44,7 +47,7 @@ public final class JsonLineFileSource<T> implements PoetrySource {
           new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
         String line = reader.readLine();
         while (line != null) {
-          T t = GSON.fromJson(line, clazz);
+          T t = gson.fromJson(line, clazz);
           result.add(transformer.apply(t));
           line = reader.readLine();
         }
