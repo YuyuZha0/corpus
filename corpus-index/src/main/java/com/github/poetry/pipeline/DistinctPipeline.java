@@ -2,7 +2,9 @@ package com.github.poetry.pipeline;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.text.TextUtils;
-import lombok.NonNull;
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.Graphs;
+import com.google.common.graph.MutableGraph;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.similarity.JaccardSimilarity;
 
@@ -10,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author zhaoyuyu
@@ -37,37 +40,49 @@ public final class DistinctPipeline extends ForwardingPipeline {
     return builder.toString();
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private void distinctForEachAuthor(
       String author, List<GeneralChinesePoetry> authorPoetryList, List<GeneralChinesePoetry> dump) {
     int size = authorPoetryList.size();
-    log.info("[{}] records found for author [{}].", size, author);
-    if (size < 2) return;
-    String[] contents = new String[size];
+    if (size < 2) {
+      dump.addAll(authorPoetryList);
+      return;
+    }
+    GeneralChinesePoetry[] a = authorPoetryList.toArray(new GeneralChinesePoetry[0]);
+    MutableGraph<Integer> poetryIdGraph =
+        GraphBuilder.undirected().allowsSelfLoops(false).expectedNodeCount(size).build();
+
     for (int i = 0; i < size; ++i) {
-      contents[i] = reserveHanChar(authorPoetryList.get(i).getContent());
+      poetryIdGraph.addNode(i);
     }
-    for (int i = 0; i < size - 1; ++i) {
-      if (contents[i] == null) continue;
-      for (int j = i + 1; j < size; ++j) {
-        if (contents[j] == null || contents[i] == null) continue;
-        // 如果两者相似，只保留内容较长的
-        if (isSimilar(contents[i], contents[j])) {
-          if (contents[i].length() > contents[j].length()) {
-            contents[j] = null;
-          } else {
-            contents[i] = null;
-          }
-        }
+    String prevContent = reserveHanChar(a[0].getContent());
+    for (int i = 1; i < a.length; ++i) {
+      String content = reserveHanChar(a[i].getContent());
+      if (isSimilar(prevContent, content)) {
+        poetryIdGraph.putEdge(i - 1, i);
       }
+      prevContent = content;
     }
+
     int distinctCount = 0;
+
     for (int i = 0; i < size; ++i) {
-      if (contents[i] != null) {
-        ++distinctCount;
-        dump.add(authorPoetryList.get(i));
+      if (poetryIdGraph.nodes().contains(i)) {
+        Set<Integer> similarSet = Graphs.reachableNodes(poetryIdGraph, i);
+        GeneralChinesePoetry poetry = a[i];
+        for (Integer id : similarSet) {
+          if (a[id].getTitle().length() > poetry.getTitle().length()) {
+            poetry = a[id];
+          }
+          poetryIdGraph.removeNode(id);
+        }
+        poetryIdGraph.removeNode(i);
+        dump.add(poetry);
+        distinctCount++;
       }
     }
-    log.info("[{}] distinct records found for author [{}]", distinctCount, author);
+
+    log.info("distinct[{}/{}] finished for author [{}]", distinctCount, size, author);
   }
 
   private boolean isSimilar(String s1, String s2) {
