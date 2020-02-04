@@ -51,17 +51,18 @@ public final class DistinctPipeline extends ForwardingPipeline {
     GeneralChinesePoetry[] a = authorPoetryList.toArray(new GeneralChinesePoetry[0]);
     MutableGraph<Integer> poetryIdGraph =
         GraphBuilder.undirected().allowsSelfLoops(false).expectedNodeCount(size).build();
+    String[] contents = new String[size];
 
     for (int i = 0; i < size; ++i) {
       poetryIdGraph.addNode(i);
+      contents[i] = reserveHanChar(a[i].getContent());
     }
-    String prevContent = reserveHanChar(a[0].getContent());
-    for (int i = 1; i < a.length; ++i) {
-      String content = reserveHanChar(a[i].getContent());
-      if (isSimilar(prevContent, content)) {
-        poetryIdGraph.putEdge(i - 1, i);
+    for (int i = 0; i < contents.length - 1; ++i) {
+      for (int j = i + 1; j < contents.length; ++j) {
+        if (isSimilar(contents[i], contents[j])) {
+          poetryIdGraph.putEdge(i, j);
+        }
       }
-      prevContent = content;
     }
 
     int distinctCount = 0;
