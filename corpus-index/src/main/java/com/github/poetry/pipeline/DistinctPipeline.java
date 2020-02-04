@@ -6,7 +6,7 @@ import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.text.similarity.JaccardSimilarity;
+import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ import java.util.Set;
 public final class DistinctPipeline extends ForwardingPipeline {
 
   private static final double SIMILAR_THRESHOLD = 0.9;
-  private final JaccardSimilarity jaccardSimilarity = new JaccardSimilarity();
+  private final JaroWinklerSimilarity jaroWinklerSimilarity = new JaroWinklerSimilarity();
 
   public DistinctPipeline(Pipeline next) {
     super(DistinctPipeline.class.getSimpleName(), next);
@@ -94,7 +94,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
   }
 
   private boolean isSimilar(String s1, String s2) {
-    return s1.equals(s2) || jaccardSimilarity.apply(s1, s2) >= SIMILAR_THRESHOLD;
+    return s1.equals(s2) || jaroWinklerSimilarity.apply(s1, s2) >= SIMILAR_THRESHOLD;
   }
 
   @Override
