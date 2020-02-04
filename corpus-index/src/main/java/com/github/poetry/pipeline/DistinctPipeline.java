@@ -43,7 +43,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
   @SuppressWarnings("UnstableApiUsage")
   private void distinctForEachAuthor(
       String author, List<GeneralChinesePoetry> authorPoetryList, List<GeneralChinesePoetry> dump) {
-    int size = authorPoetryList.size();
+    final int size = authorPoetryList.size();
     if (size < 2) {
       dump.addAll(authorPoetryList);
       return;
@@ -71,9 +71,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
         Set<Integer> similarSet = Graphs.reachableNodes(poetryIdGraph, i);
         GeneralChinesePoetry poetry = a[i];
         for (Integer id : similarSet) {
-          if (a[id].getTitle().length() > poetry.getTitle().length()) {
-            poetry = a[id];
-          }
+          poetry = prefer(poetry, a[id]);
           poetryIdGraph.removeNode(id);
         }
         poetryIdGraph.removeNode(i);
@@ -83,6 +81,16 @@ public final class DistinctPipeline extends ForwardingPipeline {
     }
 
     log.info("distinct[{}/{}] finished for author [{}]", distinctCount, size, author);
+  }
+
+  private GeneralChinesePoetry prefer(GeneralChinesePoetry a, GeneralChinesePoetry b) {
+    if (a.getTitle() == null) {
+      return b;
+    }
+    if (b.getTitle() == null) {
+      return a;
+    }
+    return a.getTitle().length() > b.getTitle().length() ? a : b;
   }
 
   private boolean isSimilar(String s1, String s2) {
