@@ -22,6 +22,7 @@ import java.util.Set;
 public final class DistinctPipeline extends ForwardingPipeline {
 
   private static final double SIMILAR_THRESHOLD = 0.9;
+  private static final int MAX_COMPARE_LEN = 80;
   private final JaroWinklerSimilarity jaroWinklerSimilarity = new JaroWinklerSimilarity();
 
   public DistinctPipeline(Pipeline next) {
@@ -31,11 +32,14 @@ public final class DistinctPipeline extends ForwardingPipeline {
   private static String reserveHanChar(String content) {
     if (content == null || content.isEmpty()) return content;
     int len = content.length();
-    StringBuilder builder = new StringBuilder();
+    StringBuilder builder = new StringBuilder(MAX_COMPARE_LEN);
+    int hanCount = 0;
     for (int i = 0; i < len; ++i) {
       if (TextUtils.isChineseCharacter(content, i)) {
         builder.append(content.charAt(i));
+        ++hanCount;
       }
+      if (hanCount > MAX_COMPARE_LEN) break;
     }
     return builder.toString();
   }
@@ -95,7 +99,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
   }
 
   private boolean isSimilar(String s1, String s2) {
-    return s1.equals(s2) || jaroWinklerSimilarity.apply(s1, s2) >= SIMILAR_THRESHOLD;
+    return jaroWinklerSimilarity.apply(s1, s2) >= SIMILAR_THRESHOLD;
   }
 
   @Override
