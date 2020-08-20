@@ -1,5 +1,7 @@
 package com.github.poetry.handler;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.lucene.LuceneFacade;
 import com.github.poetry.lucene.QueryParams;
@@ -83,6 +85,7 @@ public final class PoetryQueryHandler implements Handler<RoutingContext> {
 
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   @Getter
+  @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
   private static final class SearchResult implements Serializable {
     private static final long serialVersionUID = -7036094043351059691L;
     private final int status;
