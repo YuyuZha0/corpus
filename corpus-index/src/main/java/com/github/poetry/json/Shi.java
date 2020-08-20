@@ -1,6 +1,7 @@
 package com.github.poetry.json;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
@@ -12,6 +13,7 @@ import java.util.List;
  * @since 2019/11/27
  */
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class Shi implements Serializable {
 
   private final String author;
