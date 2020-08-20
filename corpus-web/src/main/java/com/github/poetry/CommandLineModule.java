@@ -1,7 +1,10 @@
 package com.github.poetry;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.name.Names;
+import io.vertx.core.Vertx;
 import lombok.NonNull;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -35,5 +38,11 @@ final class CommandLineModule extends AbstractModule {
       }
     }
     Names.bindProperties(binder(), properties);
+  }
+
+  @Provides
+  @Singleton
+  Vertx provideVertx() {
+    return Vertx.vertx();
   }
 }
