@@ -12,6 +12,7 @@ import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author zhaoyuyu
@@ -44,15 +45,13 @@ public final class DistinctPipeline extends ForwardingPipeline {
   }
 
   @SuppressWarnings("UnstableApiUsage")
-  private void distinctForEachAuthor(
-      String author,
-      List<GeneralChinesePoetry> authorPoetryList,
-      Collection<GeneralChinesePoetry> dump) {
+  private List<GeneralChinesePoetry> distinctForEachAuthor(
+      String author, List<GeneralChinesePoetry> authorPoetryList) {
     final int size = authorPoetryList.size();
     if (size < 2) {
-      dump.addAll(authorPoetryList);
-      return;
+      return authorPoetryList;
     }
+    List<GeneralChinesePoetry> dump = new ArrayList<>(size);
     GeneralChinesePoetry[] a = authorPoetryList.toArray(new GeneralChinesePoetry[0]);
     MutableGraph<Integer> poetryIdGraph =
         GraphBuilder.undirected().allowsSelfLoops(false).expectedNodeCount(size).build();
@@ -87,6 +86,8 @@ public final class DistinctPipeline extends ForwardingPipeline {
     }
 
     log.info("distinct[{}/{}] finished for author [{}]", distinctCount, size, author);
+
+    return dump;
   }
 
   private GeneralChinesePoetry prefer(GeneralChinesePoetry a, GeneralChinesePoetry b) {
@@ -118,8 +119,16 @@ public final class DistinctPipeline extends ForwardingPipeline {
     }
     log.info("[{}] authors found, [{}] records found.", authorPoetryMap.size(), count);
     BlockingQueue<GeneralChinesePoetry> dump = new ArrayBlockingQueue<>(count);
-    authorPoetryMap.entrySet().parallelStream()
-        .forEach(e -> distinctForEachAuthor(e.getKey(), e.getValue(), dump));
+    List<CompletableFuture<?>> futureList = new ArrayList<>();
+    authorPoetryMap.forEach(
+        (k, v) -> {
+          CompletableFuture<?> future =
+              CompletableFuture.supplyAsync(() -> distinctForEachAuthor(k, v))
+                  .whenComplete(
+                      ((generalChinesePoetries, throwable) -> dump.addAll(generalChinesePoetries)));
+          futureList.add(future);
+        });
+    CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
 
     int size = dump.size();
     log.info("distinct finished, [{}] records after distinct.", size);
