@@ -10,9 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 /**
  * @author zhaoyuyu
@@ -120,10 +118,11 @@ public final class DistinctPipeline extends ForwardingPipeline {
     log.info("[{}] authors found, [{}] records found.", authorPoetryMap.size(), count);
     BlockingQueue<GeneralChinesePoetry> dump = new ArrayBlockingQueue<>(count);
     List<CompletableFuture<?>> futureList = new ArrayList<>();
+    Executor executor = Executors.newWorkStealingPool(5);
     authorPoetryMap.forEach(
         (k, v) -> {
           CompletableFuture<?> future =
-              CompletableFuture.supplyAsync(() -> distinctForEachAuthor(k, v))
+              CompletableFuture.supplyAsync(() -> distinctForEachAuthor(k, v), executor)
                   .whenComplete(
                       ((generalChinesePoetries, throwable) -> dump.addAll(generalChinesePoetries)));
           futureList.add(future);

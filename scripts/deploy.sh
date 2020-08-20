@@ -15,7 +15,7 @@ cp ${CODE_ROOT}/corpus-index/target/corpus-index-${VERSION}.jar .
 cp ${CODE_ROOT}/corpus-web/target/corpus-web-${VERSION}.jar .
 
 rm -rf index/*
-java -jar corpus-index-${VERSION}.jar -i ${DATA_ROOT} -o index
+java -Xms512M -Xmx1500m -jar corpus-index-${VERSION}.jar -i ${DATA_ROOT} -o index
 
 PID=$(head -n 1 pid.file)
 while [[ -e /proc/${PID} ]]; do
