@@ -6,13 +6,12 @@ import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * @author zhaoyuyu
@@ -46,7 +45,9 @@ public final class DistinctPipeline extends ForwardingPipeline {
 
   @SuppressWarnings("UnstableApiUsage")
   private void distinctForEachAuthor(
-      String author, List<GeneralChinesePoetry> authorPoetryList, List<GeneralChinesePoetry> dump) {
+      String author,
+      List<GeneralChinesePoetry> authorPoetryList,
+      Collection<GeneralChinesePoetry> dump) {
     final int size = authorPoetryList.size();
     if (size < 2) {
       dump.addAll(authorPoetryList);
@@ -109,19 +110,23 @@ public final class DistinctPipeline extends ForwardingPipeline {
     int count = 0;
     for (GeneralChinesePoetry poetry : poetries) {
       authorPoetryMap
-          .compute(poetry.getAuthor(), (k, v) -> v == null ? new ArrayList<>() : v)
+          .compute(
+              StringUtils.trimToEmpty(poetry.getAuthor()),
+              (k, v) -> v == null ? new ArrayList<>() : v)
           .add(poetry);
       ++count;
     }
     log.info("[{}] authors found, [{}] records found.", authorPoetryMap.size(), count);
-    List<GeneralChinesePoetry> dump = new ArrayList<>(count);
+    BlockingQueue<GeneralChinesePoetry> dump = new ArrayBlockingQueue<>(count);
+    authorPoetryMap.entrySet().parallelStream()
+        .forEach(e -> distinctForEachAuthor(e.getKey(), e.getValue(), dump));
 
-    authorPoetryMap.forEach((k, v) -> distinctForEachAuthor(k, v, dump));
+    int size = dump.size();
+    log.info("distinct finished, [{}] records after distinct.", size);
 
-    log.info("distinct finished, [{}] records after distinct.", dump.size());
-
-    ctx.setApproxCount(dump.size());
-
-    forward(ctx, dump);
+    ctx.setApproxCount(size);
+    List<GeneralChinesePoetry> poetries1 = new ArrayList<>(size);
+    dump.drainTo(poetries1);
+    forward(ctx, poetries1);
   }
 }
