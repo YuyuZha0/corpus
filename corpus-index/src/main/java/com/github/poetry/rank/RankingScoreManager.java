@@ -1,9 +1,9 @@
 package com.github.poetry.rank;
 
-import com.github.poetry.json.GsonFactory;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.poetry.json.ObjectMapperFactory;
 import com.google.common.primitives.Doubles;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,14 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
@@ -30,8 +23,6 @@ import java.util.Map.Entry;
 @Slf4j
 public final class RankingScoreManager {
 
-  private static final Gson gson = new GsonFactory().get();
-
   private final double averageScore;
 
   private final Map<RankingKey, Double> keyMap;
@@ -41,7 +32,7 @@ public final class RankingScoreManager {
   public static RankingScoreManager create(String root) {
     final List<RankingStat> statList;
     try {
-      statList = loadFrom(root);
+      statList = loadFrom(root, new ObjectMapperFactory().get());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -70,20 +61,20 @@ public final class RankingScoreManager {
     return new RankingScoreManager(totalScore / keyMap.size(), keyMap, authorMap);
   }
 
-  private static List<RankingStat> loadFrom(String inputRoot) throws IOException {
+  private static List<RankingStat> loadFrom(String inputRoot, ObjectMapper objectMapper)
+      throws IOException {
     List<File> files = new ArrayList<>();
     addJsonFile(inputRoot + "/rank/ci", files);
     addJsonFile(inputRoot + "/rank/poet", files);
 
-    TypeToken<?> typeToken = TypeToken.getParameterized(List.class, RankingStat.class);
-
+    JavaType type =
+        objectMapper.getTypeFactory().constructCollectionType(List.class, RankingStat.class);
     List<List<RankingStat>> listList = new ArrayList<>(files.size());
 
     int totalLen = 0;
     for (File file : files) {
       try (InputStream in = new FileInputStream(file)) {
-        List<RankingStat> list =
-            gson.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
+        List<RankingStat> list = objectMapper.readValue(in, type);
         totalLen += list.size();
         listList.add(list);
       }

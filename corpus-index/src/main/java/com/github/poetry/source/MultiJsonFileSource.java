@@ -2,6 +2,7 @@ package com.github.poetry.source;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.transform.PoetryTransformer;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;

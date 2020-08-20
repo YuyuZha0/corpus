@@ -11,4 +11,4 @@ See [online demo here](http://elasticdogs.com/corpus/).
 
 Or you can try this WeChat miniprogram:
 
-![MiniProgramCode](https://github.com/YuyuZha0/corpus/blob/master/gh_5be47de1a6bf_344.jpg?raw=true)
+![MiniProgramCode](https://github.com/YuyuZha0/corpus/blob/master/qr_code.jpg?raw=true)

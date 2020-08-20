@@ -1,7 +1,7 @@
 package com.github.poetry.pipeline;
 
-import com.github.poetry.json.GsonFactory;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.poetry.json.ObjectMapperFactory;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,8 +12,7 @@ import lombok.Setter;
 @Getter
 public final class IndexContext {
 
-  private final Gson gson = new GsonFactory().get();
+  private final ObjectMapper objectMapper = new ObjectMapperFactory().get();
 
-  @Setter
-  private int approxCount;
+  @Setter private int approxCount;
 }

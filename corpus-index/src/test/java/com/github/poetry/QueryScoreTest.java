@@ -1,7 +1,7 @@
 package com.github.poetry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.poetry.rank.RankingStat;
-import com.google.gson.Gson;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -11,7 +11,7 @@ import org.junit.Test;
  */
 public class QueryScoreTest {
 
-  private final Gson gson = new Gson();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   public void test() throws Exception {
@@ -25,7 +25,7 @@ public class QueryScoreTest {
             + "        \"bing_en\": 31600,\n"
             + "        \"google\": 1010000\n"
             + "    }";
-    RankingStat stat = gson.fromJson(json, RankingStat.class);
+    RankingStat stat = objectMapper.readValue(json, RankingStat.class);
 
     Assert.assertEquals(752000L, stat.getBaidu());
     Assert.assertEquals("柳永", stat.getAuthor());
@@ -35,6 +35,6 @@ public class QueryScoreTest {
     Assert.assertEquals(31600L, stat.getBingEn());
     Assert.assertEquals(1010000L, stat.getGoogle());
 
-    //Assert.assertEquals(11.173526472371558, stat.calcScore(), 1e-4);
+    // Assert.assertEquals(11.173526472371558, stat.calcScore(), 1e-4);
   }
 }

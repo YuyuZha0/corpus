@@ -1,41 +1,54 @@
 package com.github.poetry.rank;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-@RequiredArgsConstructor
 @ToString
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class RankingStat {
 
   private static final double MIN_SCORE = 1;
 
-  @SerializedName(value = "title", alternate = "rhythmic")
   private final String title;
 
-  @SerializedName("author")
   private final String author;
 
-  @SerializedName("baidu")
   private final long baidu;
 
-  @SerializedName("so360")
   private final long so360;
 
-  @SerializedName("bing")
   private final long bing;
 
-  @SerializedName("bing_en")
   private final long bingEn;
 
-  @SerializedName("google")
   private final long google;
+
+  @JsonCreator
+  public RankingStat(
+      @JsonProperty("title") @JsonAlias("rhythmic") String title,
+      @JsonProperty("author") String author,
+      @JsonProperty("baidu") long baidu,
+      @JsonProperty("so360") long so360,
+      @JsonProperty("bing") long bing,
+      @JsonProperty("bing_en") long bingEn,
+      @JsonProperty("google") long google) {
+    this.title = title;
+    this.author = author;
+    this.baidu = baidu;
+    this.so360 = so360;
+    this.bing = bing;
+    this.bingEn = bingEn;
+    this.google = google;
+  }
 
   public double calcScore() {
 

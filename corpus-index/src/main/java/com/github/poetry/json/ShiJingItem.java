@@ -1,8 +1,9 @@
 package com.github.poetry.json;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
@@ -10,19 +11,27 @@ import java.util.List;
  * @author zhaoyuyu
  * @since 2019/11/27
  */
-@RequiredArgsConstructor
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class ShiJingItem {
 
-  @SerializedName("title")
   private final String title;
 
-  @SerializedName("chapter")
   private final String chapter;
 
-  @SerializedName("section")
   private final String section;
 
-  @SerializedName("content")
   private final List<String> content;
+
+  @JsonCreator
+  public ShiJingItem(
+      @JsonProperty("title") String title,
+      @JsonProperty("chapter") String chapter,
+      @JsonProperty("section") String section,
+      @JsonProperty("content") List<String> content) {
+    this.title = title;
+    this.chapter = chapter;
+    this.section = section;
+    this.content = content;
+  }
 }

@@ -1,18 +1,16 @@
 package com.github.poetry.source;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.poetry.json.GsonFactory;
+import com.github.poetry.json.ObjectMapperFactory;
 import com.github.poetry.transform.PoetryTransformer;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +21,7 @@ import java.util.List;
 @Slf4j
 public final class JsonFileSource<T> implements PoetrySource {
 
-  private final Gson gson = new GsonFactory().get();
+  private final ObjectMapper objectMapper = new ObjectMapperFactory().get();
   private final File file;
   private final Class<? extends T> clazz;
   private final PoetryTransformer<? super T> transformer;
@@ -40,11 +38,10 @@ public final class JsonFileSource<T> implements PoetrySource {
   @Override
   public List<GeneralChinesePoetry> get() {
 
-    TypeToken<?> typeToken = TypeToken.getParameterized(List.class, clazz);
+    JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, clazz);
     log.info("load json from file[{}]...", file.getName());
     try (InputStream in = new FileInputStream(file)) {
-      List<T> list =
-          gson.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), typeToken.getType());
+      List<T> list = objectMapper.readValue(in, type);
       List<GeneralChinesePoetry> dump = new ArrayList<>(list.size());
       for (T t : list) {
         dump.add(transformer.apply(t));

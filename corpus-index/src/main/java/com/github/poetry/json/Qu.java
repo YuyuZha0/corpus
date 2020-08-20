@@ -1,8 +1,9 @@
 package com.github.poetry.json;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,19 +12,27 @@ import java.util.List;
  * @author zhaoyuyu
  * @since 2019/11/27
  */
-@RequiredArgsConstructor
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class Qu implements Serializable {
 
-  @SerializedName("dynasty")
   private final String dynasty;
 
-  @SerializedName("author")
   private final String author;
 
-  @SerializedName("paragraphs")
   private final List<String> paragraphs;
 
-  @SerializedName("title")
   private final String title;
+
+  @JsonCreator
+  public Qu(
+      @JsonProperty("dynasty") String dynasty,
+      @JsonProperty("author") String author,
+      @JsonProperty("paragraphs") List<String> paragraphs,
+      @JsonProperty("title") String title) {
+    this.dynasty = dynasty;
+    this.author = author;
+    this.paragraphs = paragraphs;
+    this.title = title;
+  }
 }

@@ -1,8 +1,11 @@
-package com.github.poetry.query;
+package com.github.poetry.lucene;
 
 import com.github.poetry.entity.PoetryFieldEnum;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import lombok.NonNull;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -10,15 +13,8 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.BooleanQuery.Builder;
-import org.apache.lucene.search.BoostQuery;
-import org.apache.lucene.search.DisjunctionMaxQuery;
-import org.apache.lucene.search.DoubleValuesSource;
-import org.apache.lucene.search.MatchNoDocsQuery;
-import org.apache.lucene.search.PhraseQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -30,14 +26,16 @@ import java.util.function.Function;
  * @author zhaoyuyu
  * @since 2019/11/21
  */
-final class QueryParser implements Function<String, Query> {
+@Singleton
+public final class QueryParser implements Function<String, Query> {
 
   private static final float TERM_BOOST_FACTOR = 3f;
   private static final float DISJUNCTION_MAX_TIE_BREAKER = 0.15f;
 
   private final Analyzer analyzer;
 
-  QueryParser(Analyzer analyzer) {
+  @Inject
+  public QueryParser(@Named("indexAnalyzer") Analyzer analyzer) {
     this.analyzer = analyzer;
   }
 
@@ -63,7 +61,8 @@ final class QueryParser implements Function<String, Query> {
   }
 
   private Query wrapWithScore(Query in) {
-    return FunctionScoreQuery.boostByValue(in, DoubleValuesSource.fromDoubleField(PoetryFieldEnum.SCORE.fieldName));
+    return FunctionScoreQuery.boostByValue(
+        in, DoubleValuesSource.fromDoubleField(PoetryFieldEnum.SCORE.fieldName));
   }
 
   private Query makeCompositeQuery(String s) {

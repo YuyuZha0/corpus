@@ -1,8 +1,9 @@
 package com.github.poetry.json;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,22 +12,31 @@ import java.util.List;
  * @author zhaoyuyu
  * @since 2019/11/27
  */
-@RequiredArgsConstructor
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class WuDaiItem implements Serializable {
 
-  @SerializedName("title")
   private final String title;
 
-  @SerializedName("author")
   private final String author;
 
-  @SerializedName("rhythmic")
   private final String rhythmic;
 
-  @SerializedName("paragraphs")
   private final List<String> paragraphs;
 
-  @SerializedName("notes")
   private final List<String> notes;
+
+  @JsonCreator
+  public WuDaiItem(
+      @JsonProperty("title") String title,
+      @JsonProperty("author") String author,
+      @JsonProperty("rhythmic") String rhythmic,
+      @JsonProperty("paragraphs") List<String> paragraphs,
+      @JsonProperty("notes") List<String> notes) {
+    this.title = title;
+    this.author = author;
+    this.rhythmic = rhythmic;
+    this.paragraphs = paragraphs;
+    this.notes = notes;
+  }
 }

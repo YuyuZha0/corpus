@@ -1,6 +1,11 @@
 package com.github.poetry;
 
 import com.github.poetry.handler.PoetryQueryHandler;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -11,27 +16,26 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.LoggerHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.cli.*;
 
 @Slf4j
-public final class WebApp {
+@Singleton
+public final class WebApp implements AutoCloseable {
   static {
     System.setProperty(
         LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME, SLF4JLogDelegateFactory.class.getName());
   }
 
-  private final String indexPath;
+  private final PoetryQueryHandler poetryQueryHandler;
+  private final Vertx vertx;
+  private final HttpServer httpServer;
   private final int port;
 
-  private WebApp(String indexPath, int port) {
-    this.indexPath = indexPath;
+  @Inject
+  private WebApp(PoetryQueryHandler poetryQueryHandler, Vertx vertx, @Named("cli.port") int port) {
+    this.poetryQueryHandler = poetryQueryHandler;
+    this.vertx = vertx;
+    this.httpServer = vertx.createHttpServer();
     this.port = port;
   }
 
@@ -42,47 +46,55 @@ public final class WebApp {
     options.addOption(new Option("i", "index", true, "the lucene index path"));
 
     CommandLineParser parser = new DefaultParser();
-    CommandLine commandLine = null;
+    CommandLine commandLine;
     try {
       commandLine = parser.parse(options, args);
-    } catch (ParseException ignore) {
+    } catch (ParseException e) {
+      throw new RuntimeException(e);
     }
-    if (commandLine == null || commandLine.hasOption('h')) {
+    if (commandLine.hasOption('h')) {
       HelpFormatter formatter = new HelpFormatter();
       formatter.printHelp("jar -jar <fileName>", options);
       return;
     }
 
-    // String indexPath = "/Users/zhaoyuyu/IdeaProjects/corpus/temp_index_dir";
-    String indexPath = commandLine.getOptionValue('i');
-    if (indexPath == null) {
-      throw new IllegalArgumentException("index path is required!");
-    }
-    int port = NumberUtils.toInt(commandLine.getOptionValue('p'), 8080);
-    new WebApp(indexPath, port).start();
+    Injector injector =
+        Guice.createInjector(new CommandLineModule(commandLine), new LuceneModule());
+    WebApp webApp = injector.getInstance(WebApp.class);
+    Runtime.getRuntime().addShutdownHook(new Thread(webApp::close));
+
+    webApp.start();
   }
 
   private void start() {
 
-    Vertx vertx = Vertx.vertx();
-    HttpServer httpServer = vertx.createHttpServer();
     Router router = Router.router(vertx);
 
     // BodyHandler 之前不能有任何BlockingHandler,且本身不能Blocking
-    router.route("/api/*").handler(BodyHandler.create());
+    router.route("/api/*").handler(BodyHandler.create(false));
     router.route().blockingHandler(LoggerHandler.create());
-    router
-        .route("/api/query-poetry")
-        .method(HttpMethod.POST)
-        .blockingHandler(new PoetryQueryHandler(indexPath));
-    router.route("/").handler(ctx -> ctx.response().sendFile("webroot/index.html").end());
+    router.route("/api/query-poetry").method(HttpMethod.POST).blockingHandler(poetryQueryHandler);
+    router.route("/").handler(ctx -> ctx.response().sendFile("webroot/index.html"));
     router
         .route("/static/*")
         .handler(StaticHandler.create("webroot/static").setDefaultContentEncoding("UTF-8"));
 
     Runtime.getRuntime().addShutdownHook(new Thread(vertx::close));
 
-    log.info("starting listening on port: {}", port);
-    httpServer.requestHandler(router).listen(port);
+    httpServer
+        .requestHandler(router)
+        .listen(port)
+        .onSuccess(
+            s -> {
+              log.info("WebApp started successfully on port : {}", port);
+            });
+  }
+
+  @Override
+  public void close() {
+    httpServer.close(
+        result -> {
+          if (result.succeeded()) vertx.close();
+        });
   }
 }

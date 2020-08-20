@@ -1,38 +1,18 @@
 package com.github.poetry;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.poetry.json.Ci;
-import com.github.poetry.json.Qu;
-import com.github.poetry.json.Shi;
-import com.github.poetry.json.ShiJingItem;
-import com.github.poetry.json.WuDaiItem;
-import com.github.poetry.pipeline.DistinctPipeline;
-import com.github.poetry.pipeline.IndexContext;
-import com.github.poetry.pipeline.Pipeline;
-import com.github.poetry.pipeline.PipelineBuilder;
-import com.github.poetry.pipeline.RankingScorePipeline;
-import com.github.poetry.pipeline.WritingIndexPipeline;
+import com.github.poetry.json.*;
+import com.github.poetry.pipeline.*;
 import com.github.poetry.source.JsonFileSource;
 import com.github.poetry.source.JsonLineFileSource;
 import com.github.poetry.source.MultiJsonFileSource;
 import com.github.poetry.source.PoetrySource;
-import com.github.poetry.transform.CiTransformer;
-import com.github.poetry.transform.QuTransformer;
-import com.github.poetry.transform.ShiJingItemTransformer;
-import com.github.poetry.transform.ShiTransformer;
-import com.github.poetry.transform.WuDaiItemTransformer;
+import com.github.poetry.transform.*;
 import com.google.common.collect.Iterables;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,19 +24,20 @@ import java.util.List;
 @Slf4j
 public final class IndexApp {
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     Options options = new Options();
     options.addOption(new Option("o", "output", true, "the output index path"));
     options.addOption(new Option("h", "help", false, "print help"));
     options.addOption(new Option("i", "index", true, "the input root path"));
 
     CommandLineParser parser = new DefaultParser();
-    CommandLine commandLine = null;
+    CommandLine commandLine;
     try {
       commandLine = parser.parse(options, args);
-    } catch (ParseException ignore) {
+    } catch (ParseException e) {
+      throw new RuntimeException(e);
     }
-    if (commandLine == null || commandLine.hasOption('h')) {
+    if (commandLine.hasOption('h')) {
       HelpFormatter formatter = new HelpFormatter();
       formatter.printHelp("jar -jar <fileName>", options);
       return;
