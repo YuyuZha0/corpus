@@ -2,7 +2,6 @@ package com.github.poetry.pipeline;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.stuxuhai.jpinyin.PinyinException;
-import com.github.stuxuhai.jpinyin.PinyinFormat;
 import com.github.stuxuhai.jpinyin.PinyinHelper;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
@@ -30,7 +29,6 @@ import java.util.concurrent.Executors;
 public final class DistinctPipeline extends ForwardingPipeline {
 
   private static final double SIMILAR_THRESHOLD = 0.9;
-  private static final int MAX_COMPARE_LEN = 200;
   private final JaroWinklerSimilarity jaroWinklerSimilarity = new JaroWinklerSimilarity();
 
   public DistinctPipeline(Pipeline next) {
@@ -40,8 +38,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
   private static String toRawRepresentation(String content) {
     if (content == null || content.isEmpty()) return content;
     try {
-      String pinyin = PinyinHelper.convertToPinyinString(content, "", PinyinFormat.WITHOUT_TONE);
-      return StringUtils.abbreviate(pinyin, MAX_COMPARE_LEN);
+      return PinyinHelper.getShortPinyin(content);
     } catch (PinyinException e) {
       throw new RuntimeException(e);
     }
