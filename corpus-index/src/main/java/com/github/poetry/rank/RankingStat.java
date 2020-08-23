@@ -52,12 +52,12 @@ public final class RankingStat {
 
   public double calcScore() {
 
-    double score = 1D;
-    score *= Math.log(Math.E + baidu);
-    score *= Math.log(Math.E + so360);
-    score *= Math.log(Math.E + bing);
-    score *= Math.log(Math.E + bingEn);
-    score *= Math.log(Math.E + google);
-    return Math.pow(score, 0.2);
+    double score = 0D;
+    score += Math.log(Math.E + baidu);
+    score += Math.log(Math.E + so360);
+    score += Math.log(Math.E + bing);
+    score += Math.log(Math.E + bingEn);
+    score += Math.log(Math.E + google);
+    return score / 5;
   }
 }

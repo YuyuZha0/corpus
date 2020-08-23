@@ -8,16 +8,19 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import lombok.NonNull;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BooleanQuery.Builder;
+import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.DisjunctionMaxQuery;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.MatchNoDocsQuery;
+import org.apache.lucene.search.PhraseQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -32,14 +35,13 @@ public final class QueryParser implements Function<String, Query> {
   private static final float TERM_BOOST_FACTOR = 3f;
   private static final float DISJUNCTION_MAX_TIE_BREAKER = 0.15f;
 
-  private final Analyzer analyzer;
+  private final Tokenizer tokenizer;
 
   @Inject
   public QueryParser(@Named("indexAnalyzer") Analyzer analyzer) {
-    this.analyzer = analyzer;
+    this.tokenizer = new Tokenizer(analyzer);
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   private static List<String> splitWithBlank(String s) {
     return Splitter.on(CharMatcher.breakingWhitespace()).omitEmptyStrings().splitToList(s);
   }
@@ -70,7 +72,7 @@ public final class QueryParser implements Function<String, Query> {
     disjuncts.add(makeTermQuery(PoetryFieldEnum.AUTHOR, s));
     disjuncts.add(makeTermQuery(PoetryFieldEnum.DYNASTY, s));
     disjuncts.add(makeTermQuery(PoetryFieldEnum.TYPE, s));
-    String[] tokens = tokenize(s);
+    String[] tokens = tokenizer.apply(s).toArray(new String[0]);
     if (tokens.length == 0) {
       return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
@@ -93,22 +95,6 @@ public final class QueryParser implements Function<String, Query> {
 
   private Query makeTokenizedQuery(PoetryFieldEnum fieldEnum, String[] tokens) {
     return new PhraseQuery(phraseQuerySlop(tokens), fieldEnum.fieldName, tokens);
-  }
-
-  private String[] tokenize(String s) {
-    List<String> result = new ArrayList<>();
-    TokenStream tokenStream = analyzer.tokenStream("", new StringReader(s));
-    try {
-      tokenStream.reset();
-      while (tokenStream.incrementToken()) {
-        result.add(tokenStream.getAttribute(CharTermAttribute.class).toString());
-      }
-      tokenStream.end();
-      tokenStream.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    return result.toArray(new String[0]);
   }
 
   @Override

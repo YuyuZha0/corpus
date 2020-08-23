@@ -1,7 +1,9 @@
 package com.github.poetry.pipeline;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.poetry.text.TextUtils;
+import com.github.stuxuhai.jpinyin.PinyinException;
+import com.github.stuxuhai.jpinyin.PinyinFormat;
+import com.github.stuxuhai.jpinyin.PinyinHelper;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
@@ -9,8 +11,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * @author zhaoyuyu
@@ -20,26 +30,21 @@ import java.util.concurrent.*;
 public final class DistinctPipeline extends ForwardingPipeline {
 
   private static final double SIMILAR_THRESHOLD = 0.9;
-  private static final int MAX_COMPARE_LEN = 80;
+  private static final int MAX_COMPARE_LEN = 200;
   private final JaroWinklerSimilarity jaroWinklerSimilarity = new JaroWinklerSimilarity();
 
   public DistinctPipeline(Pipeline next) {
     super(DistinctPipeline.class.getSimpleName(), next);
   }
 
-  private static String reserveHanChar(String content) {
+  private static String toRawRepresentation(String content) {
     if (content == null || content.isEmpty()) return content;
-    int len = content.length();
-    StringBuilder builder = new StringBuilder(MAX_COMPARE_LEN);
-    int hanCount = 0;
-    for (int i = 0; i < len; ++i) {
-      if (TextUtils.isChineseCharacter(content, i)) {
-        builder.append(content.charAt(i));
-        ++hanCount;
-      }
-      if (hanCount > MAX_COMPARE_LEN) break;
+    try {
+      String pinyin = PinyinHelper.convertToPinyinString(content, "", PinyinFormat.WITHOUT_TONE);
+      return StringUtils.abbreviate(pinyin, MAX_COMPARE_LEN);
+    } catch (PinyinException e) {
+      throw new RuntimeException(e);
     }
-    return builder.toString();
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -57,7 +62,7 @@ public final class DistinctPipeline extends ForwardingPipeline {
 
     for (int i = 0; i < size; ++i) {
       poetryIdGraph.addNode(i);
-      contents[i] = reserveHanChar(a[i].getContent());
+      contents[i] = toRawRepresentation(a[i].getContent());
     }
     for (int i = 0; i < contents.length - 1; ++i) {
       for (int j = i + 1; j < contents.length; ++j) {
