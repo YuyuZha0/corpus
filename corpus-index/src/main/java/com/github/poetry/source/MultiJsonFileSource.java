@@ -48,7 +48,7 @@ public final class MultiJsonFileSource<T> implements PoetrySource {
       try (Stream<Path> pathStream = Files.walk(root)) {
         pathList =
             pathStream
-                .filter(path -> filter.test(path.toString()))
+                .filter(path -> filter.test(path.getFileName().toString()))
                 .filter(Files::isRegularFile)
                 .filter(Files::isReadable)
                 .collect(Collectors.toList());
@@ -56,6 +56,7 @@ public final class MultiJsonFileSource<T> implements PoetrySource {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    log.info("[{}] file(s) found in directory: {}", pathList.size(), root);
     List<List<GeneralChinesePoetry>> temp = new ArrayList<>(pathList.size());
     for (Path path : pathList) {
       JsonFileSource<T> jsonFileSource =
