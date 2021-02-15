@@ -6,7 +6,7 @@
 
     <parent>
         <artifactId>corpus</artifactId>
-        <groupId>com.github.yuyu</groupId>
+        <groupId>com.github.poetry</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>corpus-web</artifactId>
@@ -20,13 +20,13 @@
         <mysql.version>5.1.45</mysql.version>
         <mybatis.version>3.4.4</mybatis.version>
         <mongo.version>3.9.0</mongo.version>
-        <vertx.version>4.0.0-milestone5</vertx.version>
+        <vertx.version>4.0.2</vertx.version>
         <guice.version>4.2.3</guice.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.github.yuyu</groupId>
+            <groupId>com.github.poetry</groupId>
             <artifactId>corpus-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -65,7 +65,7 @@
             <artifactId>jackson-annotations</artifactId>
             <version>${jackson.version}</version>
         </dependency>
-        
+
         <!--<dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>

@@ -3,17 +3,35 @@ package com.github.poetry.rank;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.poetry.json.ObjectMapperFactory;
-import com.google.common.primitives.Doubles;
+import com.google.common.math.IntMath;
+import com.google.common.math.Stats;
+import gnu.trove.list.TDoubleList;
+import gnu.trove.list.array.TDoubleArrayList;
+import gnu.trove.map.TObjectDoubleMap;
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
+import java.util.function.ToDoubleBiFunction;
+import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 
 /**
  * @author zhaoyuyu
@@ -21,65 +39,62 @@ import java.util.Map.Entry;
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
-public final class RankingScoreManager {
+public final class RankingScoreManager implements ToDoubleBiFunction<String, String> {
 
-  private final double averageScore;
+  private final TObjectDoubleMap<RankingKey> keyMap;
 
-  private final Map<RankingKey, Double> keyMap;
+  private final TObjectDoubleMap<String> authorMap;
 
-  private final Map<String, Double> authorMap;
-
-  public static RankingScoreManager create(String root) {
-    final List<RankingStat> statList;
+  public static RankingScoreManager create(@NonNull Path root) {
+    final RankingStat[] stats;
     try {
-      statList = loadFrom(root, new ObjectMapperFactory().get());
+      stats = loadFrom(root, new ObjectMapperFactory().get()).toArray(new RankingStat[0]);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    double totalScore = 0D;
-    Map<RankingKey, Double> keyMap = new HashMap<>(statList.size());
-    Map<String, List<Double>> authorScoreMap = new HashMap<>();
-    for (RankingStat stat : statList) {
+    setLevel(stats);
+
+    TObjectDoubleMap<RankingKey> keyMap = new TObjectDoubleHashMap<>(stats.length);
+    Map<String, TDoubleList> authorScoreMap = new HashMap<>();
+    for (RankingStat stat : stats) {
       double score = stat.calcScore();
       if (Double.isNaN(score) || Double.isInfinite(score) || score <= 0D) {
-        log.warn("invalid score: {}@{}", score, stat);
+        log.warn("invalid score: {} -> {}", stat, score);
         continue;
       }
-      totalScore += score;
       keyMap.put(RankingKey.of(stat.getTitle(), stat.getAuthor()), score);
       authorScoreMap
-          .compute(stat.getAuthor(), (k, v) -> v == null ? new ArrayList<>() : v)
+          .compute(stat.getAuthor(), (k, v) -> v == null ? new TDoubleArrayList() : v)
           .add(score);
     }
-    Map<String, Double> authorMap = new HashMap<>(authorScoreMap.size());
-    for (Entry<String, List<Double>> entry : authorScoreMap.entrySet()) {
-      double[] scores = Doubles.toArray(entry.getValue());
-      Arrays.sort(scores);
-      authorMap.put(entry.getKey(), /*中位数*/ scores[(scores.length - 1) >>> 1]);
+    TObjectDoubleMap<String> authorMap = new TObjectDoubleHashMap<>(authorScoreMap.size());
+    for (Entry<String, TDoubleList> entry : authorScoreMap.entrySet()) {
+      double[] scores = entry.getValue().toArray();
+      //noinspection UnstableApiUsage
+      authorMap.put(entry.getKey(), Stats.meanOf(scores));
     }
 
-    return new RankingScoreManager(totalScore / keyMap.size(), keyMap, authorMap);
+    return new RankingScoreManager(keyMap, authorMap);
   }
 
-  private static List<RankingStat> loadFrom(String inputRoot, ObjectMapper objectMapper)
+  private static List<RankingStat> loadFrom(Path rootPath, ObjectMapper objectMapper)
       throws IOException {
-    List<File> files = new ArrayList<>();
-    addJsonFile(inputRoot + "/rank/ci", files);
-    addJsonFile(inputRoot + "/rank/poet", files);
+    List<Path> files = new ArrayList<>();
+    addJsonFile(Paths.get(rootPath.toString(), "rank", "ci"), files);
+    addJsonFile(Paths.get(rootPath.toString(), "rank", "poet"), files);
 
     JavaType type =
         objectMapper.getTypeFactory().constructCollectionType(List.class, RankingStat.class);
     List<List<RankingStat>> listList = new ArrayList<>(files.size());
 
-    int totalLen = 0;
-    for (File file : files) {
-      try (InputStream in = new FileInputStream(file)) {
+    for (Path file : files) {
+      try (InputStream in = Files.newInputStream(file, StandardOpenOption.READ)) {
         List<RankingStat> list = objectMapper.readValue(in, type);
-        totalLen += list.size();
         listList.add(list);
       }
     }
-    log.warn("[{}] records loaded.", totalLen);
+    int totalLen = listList.stream().mapToInt(List::size).sum();
+    log.info("[{}] records loaded.", totalLen);
     List<RankingStat> result = new ArrayList<>(totalLen);
     for (List<RankingStat> list : listList) {
       result.addAll(list);
@@ -87,25 +102,53 @@ public final class RankingScoreManager {
     return result;
   }
 
-  private static void addJsonFile(String root, List<File> files) {
-    File[] files1 = new File(root).listFiles((f, n) -> n.endsWith("json"));
-    if (files1 != null && files1.length > 0) {
-      log.info("[{}] file(s) found at : {}", files1.length, root);
-      Collections.addAll(files, files1);
-    } else {
-      log.warn("no files found at : {}", root);
+  private static void addJsonFile(Path root, List<Path> files) throws IOException {
+    try (Stream<Path> pathStream = Files.walk(root)) {
+      pathStream
+          .filter(p -> p.toString().endsWith("json"))
+          .filter(Files::isReadable)
+          .filter(Files::isRegularFile)
+          .forEach(files::add);
+    }
+  }
+
+  private static void setLevel(RankingStat[] stats) {
+    setLevel0(stats, RankingStat::getBaidu, RankingStat::setBaiduLevel);
+    setLevel0(stats, RankingStat::getBing, RankingStat::setBingLevel);
+    setLevel0(stats, RankingStat::getBingEn, RankingStat::setBingEnLevel);
+    setLevel0(stats, RankingStat::getSo360, RankingStat::setSo360Level);
+    setLevel0(stats, RankingStat::getGoogle, RankingStat::setGoogleLevel);
+  }
+
+  private static void setLevel0(
+      RankingStat[] stats,
+      ToLongFunction<? super RankingStat> key,
+      BiConsumer<? super RankingStat, Integer> setter) {
+    Arrays.sort(stats, Comparator.comparingLong(key));
+    for (int i = 0; i < stats.length; ++i) {
+      RankingStat stat = stats[i];
+      int level = IntMath.divide((i + 1) * 5, stats.length, RoundingMode.HALF_UP) + 1;
+      setter.accept(stat, level);
     }
   }
 
   public double getRankingScore(String title, String author) {
-    Double score = keyMap.get(RankingKey.of(title, author));
-    if (score != null) {
-      return score / averageScore;
+    if ("句".equals(title)) {
+      return 0.9D;
+    }
+    double score = keyMap.get(RankingKey.of(title, author));
+    if (score > 0) {
+      return score;
     }
     score = authorMap.get(author);
-    if (score != null) {
-      return score / averageScore;
+    if (score > 0) {
+      return score;
     }
     return 1D;
+  }
+
+  @Override
+  public double applyAsDouble(String s, String s2) {
+    return getRankingScore(s, s2);
   }
 }

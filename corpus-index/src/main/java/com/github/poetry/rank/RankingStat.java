@@ -2,19 +2,24 @@ package com.github.poetry.rank;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.MoreObjects;
+import com.google.common.math.Stats;
 import lombok.Getter;
-import lombok.ToString;
+import lombok.Setter;
+
+import java.util.function.DoubleSupplier;
 
 /**
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-@ToString
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class RankingStat {
+@Setter
+public final class RankingStat implements DoubleSupplier {
 
   private static final double MIN_SCORE = 1;
 
@@ -31,6 +36,16 @@ public final class RankingStat {
   private final long bingEn;
 
   private final long google;
+
+  @JsonIgnore private int baiduLevel;
+
+  @JsonIgnore private int so360Level;
+
+  @JsonIgnore private int bingLevel;
+
+  @JsonIgnore private int bingEnLevel;
+
+  @JsonIgnore private int googleLevel;
 
   @JsonCreator
   public RankingStat(
@@ -50,14 +65,26 @@ public final class RankingStat {
     this.google = google;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   public double calcScore() {
+    return Stats.meanOf(baiduLevel, so360Level, bingLevel, bingEnLevel, googleLevel);
+  }
 
-    double score = 0D;
-    score += Math.log(Math.E + baidu);
-    score += Math.log(Math.E + so360);
-    score += Math.log(Math.E + bing);
-    score += Math.log(Math.E + bingEn);
-    score += Math.log(Math.E + google);
-    return score / 5;
+  @Override
+  public double getAsDouble() {
+    return calcScore();
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("title", title)
+        .add("author", author)
+        .add("baidu", baidu)
+        .add("so360", so360)
+        .add("bing", bing)
+        .add("bingEn", bingEn)
+        .add("google", google)
+        .toString();
   }
 }

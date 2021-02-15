@@ -1,15 +1,17 @@
 package com.github.poetry.pipeline;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.stuxuhai.jpinyin.PinyinException;
-import com.github.stuxuhai.jpinyin.PinyinHelper;
+import com.github.poetry.text.TextUtil;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.Graphs;
 import com.google.common.graph.MutableGraph;
+import com.google.common.util.concurrent.MoreExecutors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
+import java.text.DecimalFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -29,6 +31,7 @@ import java.util.concurrent.Executors;
 public final class DistinctPipeline extends ForwardingPipeline {
 
   private static final double SIMILAR_THRESHOLD = 0.9;
+  private static final int MAX_CMP_LEN = 64;
   private final JaroWinklerSimilarity jaroWinklerSimilarity = new JaroWinklerSimilarity();
 
   public DistinctPipeline(Pipeline next) {
@@ -36,12 +39,23 @@ public final class DistinctPipeline extends ForwardingPipeline {
   }
 
   private static String toRawRepresentation(String content) {
-    if (content == null || content.isEmpty()) return content;
-    try {
-      return PinyinHelper.getShortPinyin(content);
-    } catch (PinyinException e) {
-      throw new RuntimeException(e);
+    if (StringUtils.isEmpty(content)) {
+      return content;
     }
+    StringBuilder builder = new StringBuilder(MAX_CMP_LEN);
+    for (int i = 0, len = content.length(); i < len; ++i) {
+      if (TextUtil.isChineseCharacter(content, i)) {
+        builder.append(content.charAt(i));
+      }
+      if (builder.length() > MAX_CMP_LEN) {
+        break;
+      }
+    }
+    return builder.toString();
+  }
+
+  private static String formatDiv(double a, double b) {
+    return new DecimalFormat("#.##%").format(a / b);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -85,7 +99,12 @@ public final class DistinctPipeline extends ForwardingPipeline {
       }
     }
 
-    log.info("distinct[{}/{}] finished for author [{}]", distinctCount, size, author);
+    log.info(
+        "distinct[{}/{}:{}] finished for author [{}]",
+        distinctCount,
+        size,
+        formatDiv(distinctCount, size),
+        author);
 
     return dump;
   }
@@ -107,36 +126,42 @@ public final class DistinctPipeline extends ForwardingPipeline {
   @Override
   public void process(IndexContext ctx, Iterable<GeneralChinesePoetry> poetries) {
 
-    Map<String, List<GeneralChinesePoetry>> authorPoetryMap = new HashMap<>();
-    int count = 0;
+    Map<String, List<GeneralChinesePoetry>> authorPoetryMap = new HashMap<>(512);
     for (GeneralChinesePoetry poetry : poetries) {
       authorPoetryMap
           .compute(
               StringUtils.trimToEmpty(poetry.getAuthor()),
               (k, v) -> v == null ? new ArrayList<>() : v)
           .add(poetry);
-      ++count;
     }
-    log.info("[{}] authors found, [{}] records found.", authorPoetryMap.size(), count);
-    BlockingQueue<GeneralChinesePoetry> dump = new ArrayBlockingQueue<>(count);
+    int poetryCount = authorPoetryMap.values().stream().mapToInt(List::size).sum();
+    log.info("[{}] authors found, [{}] records found.", authorPoetryMap.size(), poetryCount);
+    BlockingQueue<GeneralChinesePoetry> distinctResultQueue = new ArrayBlockingQueue<>(poetryCount);
     List<CompletableFuture<?>> futureList = new ArrayList<>();
-    Executor executor = Executors.newWorkStealingPool(5);
+    ExecutorService executor = Executors.newWorkStealingPool(5);
     authorPoetryMap.forEach(
         (k, v) -> {
           CompletableFuture<?> future =
               CompletableFuture.supplyAsync(() -> distinctForEachAuthor(k, v), executor)
                   .whenComplete(
-                      ((generalChinesePoetries, throwable) -> dump.addAll(generalChinesePoetries)));
+                      ((generalChinesePoetries, throwable) ->
+                          distinctResultQueue.addAll(generalChinesePoetries)));
           futureList.add(future);
         });
     CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
+    //noinspection UnstableApiUsage
+    MoreExecutors.shutdownAndAwaitTermination(executor, Duration.ofSeconds(2));
 
-    int size = dump.size();
-    log.info("distinct finished, [{}] records after distinct.", size);
+    int distinctResultSize = distinctResultQueue.size();
+    log.info(
+        "distinct finished, [{}/{}:{}] records after distinct.",
+        distinctResultSize,
+        poetryCount,
+        formatDiv(distinctResultSize, poetryCount));
 
-    ctx.setApproxCount(size);
-    List<GeneralChinesePoetry> poetries1 = new ArrayList<>(size);
-    dump.drainTo(poetries1);
+    ctx.setApproxCount(distinctResultSize);
+    List<GeneralChinesePoetry> poetries1 = new ArrayList<>(distinctResultSize);
+    distinctResultQueue.drainTo(poetries1);
     forward(ctx, poetries1);
   }
 }

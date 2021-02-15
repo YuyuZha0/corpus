@@ -2,15 +2,19 @@ package com.github.poetry.source;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.transform.PoetryTransformer;
-import com.google.common.io.Files;
+import com.google.common.base.Preconditions;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author zhaoyuyu
@@ -19,18 +23,18 @@ import java.util.function.Predicate;
 @Slf4j
 public final class MultiJsonFileSource<T> implements PoetrySource {
 
-  private final File root;
+  private final Path root;
   private final Class<? extends T> clazz;
-  private final Function<? super File, PoetryTransformer<? super T>> transformerFactory;
+  private final Function<? super Path, PoetryTransformer<? super T>> transformerFactory;
   private final Predicate<? super String> filter;
 
   public MultiJsonFileSource(
-      @NonNull File root,
+      @NonNull Path root,
       @NonNull Class<? extends T> clazz,
-      @NonNull Function<? super File, PoetryTransformer<? super T>> transformerFactory,
+      @NonNull Function<? super Path, PoetryTransformer<? super T>> transformerFactory,
       @NonNull Predicate<? super String> filter) {
-    if (!root.exists() || !root.isDirectory())
-      throw new IllegalArgumentException("invalid root:" + root.getAbsolutePath());
+    Preconditions.checkArgument(
+        Files.isDirectory(root) && Files.isReadable(root), "invalid root: `%s`", root.toString());
     this.root = root;
     this.clazz = clazz;
     this.transformerFactory = transformerFactory;
@@ -38,20 +42,29 @@ public final class MultiJsonFileSource<T> implements PoetrySource {
   }
 
   @Override
-  @SuppressWarnings("UnstableApiUsage")
   public List<GeneralChinesePoetry> get() {
-    Iterable<File> files = Files.fileTraverser().breadthFirst(root);
-    List<List<GeneralChinesePoetry>> temp = new ArrayList<>();
-    int totalCount = 0;
-    for (File file : files) {
-      if (!filter.test(file.getName())) continue;
+    List<Path> pathList;
+    try {
+      try (Stream<Path> pathStream = Files.walk(root)) {
+        pathList =
+            pathStream
+                .filter(path -> filter.test(path.toString()))
+                .filter(Files::isRegularFile)
+                .filter(Files::isReadable)
+                .collect(Collectors.toList());
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    List<List<GeneralChinesePoetry>> temp = new ArrayList<>(pathList.size());
+    for (Path path : pathList) {
       JsonFileSource<T> jsonFileSource =
-          new JsonFileSource<>(file, clazz, transformerFactory.apply(file));
+          new JsonFileSource<>(path, clazz, transformerFactory.apply(path));
       List<GeneralChinesePoetry> poetryList = jsonFileSource.get();
       temp.add(poetryList);
-      totalCount += poetryList.size();
     }
-    log.info("read [{}] on directory [{}].", totalCount, root.getAbsolutePath());
+    int totalCount = temp.stream().mapToInt(List::size).sum();
+    log.info("read [{}] on directory [{}].", totalCount, root);
     List<GeneralChinesePoetry> result = new ArrayList<>(totalCount);
     for (List<GeneralChinesePoetry> list : temp) {
       result.addAll(list);

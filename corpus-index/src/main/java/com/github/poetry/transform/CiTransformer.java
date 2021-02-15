@@ -13,14 +13,14 @@ public final class CiTransformer implements PoetryTransformer<Ci> {
   public GeneralChinesePoetry apply(Ci ci) {
 
     GeneralChinesePoetry poetry = new GeneralChinesePoetry();
-    String[] titles = TransformUtils.splitWithMidDot(ci.getRhythmic());
+    String[] titles = TransformUtil.splitWithMidDot(ci.getRhythmic());
     if (titles.length == 1) {
       poetry.setTitle(titles[0]);
     } else if (titles.length >= 2) {
       poetry.setTitle(titles[0]);
       poetry.setSubtitle(titles[1]);
     }
-    poetry.setContent(TransformUtils.joinParagraphs(ci.getParagraphs()));
+    poetry.setContent(TransformUtil.joinParagraphs(ci.getParagraphs()));
     poetry.setDynasty("宋");
     poetry.setType("词");
     poetry.setAuthor(ci.getAuthor());

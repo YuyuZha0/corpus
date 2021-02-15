@@ -1,6 +1,6 @@
 package com.github.poetry.lucene;
 
-import com.github.poetry.entity.PoetryFieldEnum;
+import com.github.poetry.entity.DocField;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.inject.Inject;
@@ -46,7 +46,7 @@ public final class QueryParser implements Function<String, Query> {
     return Splitter.on(CharMatcher.breakingWhitespace()).omitEmptyStrings().splitToList(s);
   }
 
-  private static int phraseQuerySlop(String[] tokens) {
+  static int phraseQuerySlop(String[] tokens) {
     switch (tokens.length) {
       case 0:
       case 1:
@@ -64,37 +64,37 @@ public final class QueryParser implements Function<String, Query> {
 
   private Query wrapWithScore(Query in) {
     return FunctionScoreQuery.boostByValue(
-        in, DoubleValuesSource.fromDoubleField(PoetryFieldEnum.SCORE.fieldName));
+        in, DoubleValuesSource.fromDoubleField(DocField.SCORE.getName()));
   }
 
   private Query makeCompositeQuery(String s) {
     List<Query> disjuncts = new ArrayList<>(6);
-    disjuncts.add(makeTermQuery(PoetryFieldEnum.AUTHOR, s));
-    disjuncts.add(makeTermQuery(PoetryFieldEnum.DYNASTY, s));
-    disjuncts.add(makeTermQuery(PoetryFieldEnum.TYPE, s));
+    disjuncts.add(makeTermQuery(DocField.AUTHOR, s));
+    disjuncts.add(makeTermQuery(DocField.DYNASTY, s));
+    disjuncts.add(makeTermQuery(DocField.TYPE, s));
     String[] tokens = tokenizer.apply(s).toArray(new String[0]);
     if (tokens.length == 0) {
       return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
     if (tokens.length == 1) {
       String token = tokens[0];
-      disjuncts.add(makeTermQuery(PoetryFieldEnum.TITLE, token));
-      disjuncts.add(makeTermQuery(PoetryFieldEnum.SUBTITLE, token));
-      disjuncts.add(makeTermQuery(PoetryFieldEnum.CONTENT, token));
+      disjuncts.add(makeTermQuery(DocField.TITLE, token));
+      disjuncts.add(makeTermQuery(DocField.SUBTITLE, token));
+      disjuncts.add(makeTermQuery(DocField.CONTENT, token));
       return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
     }
-    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.TITLE, tokens));
-    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.SUBTITLE, tokens));
-    disjuncts.add(makeTokenizedQuery(PoetryFieldEnum.CONTENT, tokens));
+    disjuncts.add(makeTokenizedQuery(DocField.TITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(DocField.SUBTITLE, tokens));
+    disjuncts.add(makeTokenizedQuery(DocField.CONTENT, tokens));
     return new DisjunctionMaxQuery(disjuncts, DISJUNCTION_MAX_TIE_BREAKER);
   }
 
-  private Query makeTermQuery(PoetryFieldEnum fieldEnum, String s) {
-    return new BoostQuery(new TermQuery(new Term(fieldEnum.fieldName, s)), TERM_BOOST_FACTOR);
+  private Query makeTermQuery(DocField docField, String s) {
+    return new BoostQuery(new TermQuery(new Term(docField.getName(), s)), TERM_BOOST_FACTOR);
   }
 
-  private Query makeTokenizedQuery(PoetryFieldEnum fieldEnum, String[] tokens) {
-    return new PhraseQuery(phraseQuerySlop(tokens), fieldEnum.fieldName, tokens);
+  private Query makeTokenizedQuery(DocField docField, String[] tokens) {
+    return new PhraseQuery(phraseQuerySlop(tokens), docField.getName(), tokens);
   }
 
   @Override

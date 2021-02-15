@@ -4,10 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.json.ObjectMapperFactory;
 import com.github.poetry.transform.PoetryTransformer;
+import com.google.common.base.Preconditions;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,15 +24,19 @@ import java.util.List;
 public final class JsonLineFileSource<T> implements PoetrySource {
 
   private final ObjectMapper objectMapper = new ObjectMapperFactory().get();
-  private final File file;
+  private final Path path;
   private final Class<? extends T> clazz;
   private final PoetryTransformer<? super T> transformer;
 
   public JsonLineFileSource(
-      File file, Class<? extends T> clazz, PoetryTransformer<? super T> transformer) {
-    if (!file.exists() || !file.isFile() || !file.canRead())
-      throw new IllegalArgumentException(file.getAbsolutePath() + " is not a valid file path!");
-    this.file = file;
+      @NonNull Path path,
+      @NonNull Class<? extends T> clazz,
+      @NonNull PoetryTransformer<? super T> transformer) {
+    Preconditions.checkArgument(
+        Files.isRegularFile(path) && Files.isReadable(path),
+        "`%s is not a valid file path!`",
+        path.toString());
+    this.path = path;
     this.clazz = clazz;
     this.transformer = transformer;
   }
@@ -35,19 +44,14 @@ public final class JsonLineFileSource<T> implements PoetrySource {
   @Override
   public List<GeneralChinesePoetry> get() {
 
-    log.info("load json from file[{}]...", file.getName());
-    try (InputStream in = new FileInputStream(file)) {
+    log.info("load json from file[{}]...", path);
+    try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
       List<GeneralChinesePoetry> result = new ArrayList<>();
-      try (BufferedReader reader =
-          new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-        String line = reader.readLine();
-        while (line != null) {
-          T t = objectMapper.readValue(line, clazz);
-          result.add(transformer.apply(t));
-          line = reader.readLine();
-        }
+      String line;
+      while ((line = reader.readLine()) != null) {
+        T t = objectMapper.readValue(line, clazz);
+        result.add(transformer.apply(t));
       }
-
       log.info("[{}] entity read.", result.size());
       return result;
     } catch (IOException e) {

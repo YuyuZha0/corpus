@@ -14,7 +14,7 @@ public final class WuDaiItemTransformer implements PoetryTransformer<WuDaiItem> 
 
     GeneralChinesePoetry poetry = new GeneralChinesePoetry();
 
-    String[] titles = TransformUtils.splitWithMidDot(wudaiItem.getTitle());
+    String[] titles = TransformUtil.splitWithMidDot(wudaiItem.getTitle());
     if (titles.length == 1) {
       poetry.setTitle(titles[0]);
     } else if (titles.length >= 2) {
@@ -23,7 +23,7 @@ public final class WuDaiItemTransformer implements PoetryTransformer<WuDaiItem> 
     }
 
     poetry.setAuthor(wudaiItem.getAuthor());
-    poetry.setContent(TransformUtils.joinParagraphs(wudaiItem.getParagraphs()));
+    poetry.setContent(TransformUtil.joinParagraphs(wudaiItem.getParagraphs()));
     poetry.setDynasty("五代十国");
     poetry.setType("词");
     return poetry;

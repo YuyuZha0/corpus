@@ -15,7 +15,7 @@ public final class ShiJingItemTransformer implements PoetryTransformer<ShiJingIt
     GeneralChinesePoetry poetry = new GeneralChinesePoetry();
     poetry.setTitle(shiJingItem.getTitle());
     poetry.setSubtitle(shiJingItem.getChapter() + "\u3000" + shiJingItem.getSection());
-    poetry.setContent(TransformUtils.joinParagraphs(shiJingItem.getContent()));
+    poetry.setContent(TransformUtil.joinParagraphs(shiJingItem.getContent()));
     poetry.setDynasty("先秦");
     poetry.setType("诗经");
     poetry.setAuthor("诗经");

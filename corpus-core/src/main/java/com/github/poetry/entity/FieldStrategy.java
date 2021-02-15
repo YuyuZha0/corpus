@@ -1,7 +1,6 @@
 package com.github.poetry.entity;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
 
 /**
  * @author zhaoyuyu
@@ -11,21 +10,7 @@ public interface FieldStrategy {
 
   String getName();
 
-  void appendTo(GeneralChinesePoetry poetry, Document doc);
+  void writeDoc(GeneralChinesePoetry poetry, Document doc);
 
-  default String getValueAsString(Document doc) {
-    IndexableField field = doc.getField(getName());
-    if (field != null) {
-      return field.stringValue();
-    }
-    return null;
-  }
-
-  default double getValueAsDouble(Document doc) {
-    IndexableField field = doc.getField(getName());
-    if (field != null) {
-      return field.numericValue().doubleValue();
-    }
-    return 0D;
-  }
+  void readDoc(Document doc, GeneralChinesePoetry poetry);
 }

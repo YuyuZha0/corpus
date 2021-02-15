@@ -1,7 +1,7 @@
 package com.github.poetry.lucene;
 
+import com.github.poetry.entity.DocField;
 import com.github.poetry.entity.GeneralChinesePoetry;
-import com.github.poetry.entity.PoetryFieldEnum;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -39,8 +39,8 @@ public final class HighlighterFactory
     this.tokenizer = new Tokenizer(analyzer);
   }
 
-  private static PhraseQuery makePhraseQuery(PoetryFieldEnum poetryFieldEnum, String[] tokens) {
-    return new PhraseQuery(5, poetryFieldEnum.fieldName, tokens);
+  private static PhraseQuery makePhraseQuery(DocField docField, String[] tokens) {
+    return new PhraseQuery(QueryParser.phraseQuerySlop(tokens), docField.getName(), tokens);
   }
 
   @Override
@@ -53,11 +53,10 @@ public final class HighlighterFactory
 
     return poetry -> {
       try {
-        poetry.setTitle(doHighlight(highlighter, PoetryFieldEnum.TITLE, poetry.getTitle()));
-        poetry.setSubtitle(
-            doHighlight(highlighter, PoetryFieldEnum.SUBTITLE, poetry.getSubtitle()));
-        poetry.setAuthor(doHighlight(highlighter, PoetryFieldEnum.AUTHOR, poetry.getAuthor()));
-        poetry.setContent(doHighlight(highlighter, PoetryFieldEnum.CONTENT, poetry.getContent()));
+        poetry.setTitle(doHighlight(highlighter, DocField.TITLE, poetry.getTitle()));
+        poetry.setSubtitle(doHighlight(highlighter, DocField.SUBTITLE, poetry.getSubtitle()));
+        poetry.setAuthor(doHighlight(highlighter, DocField.AUTHOR, poetry.getAuthor()));
+        poetry.setContent(doHighlight(highlighter, DocField.CONTENT, poetry.getContent()));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -66,20 +65,19 @@ public final class HighlighterFactory
 
   private Query makeQuery(String query) {
     BooleanQuery.Builder builder = new Builder();
-    builder.add(new TermQuery(new Term(PoetryFieldEnum.AUTHOR.fieldName, query)), Occur.SHOULD);
+    builder.add(new TermQuery(new Term(DocField.AUTHOR.getName(), query)), Occur.SHOULD);
     String[] tokens = tokenizer.apply(query).toArray(new String[0]);
-    builder.add(makePhraseQuery(PoetryFieldEnum.SUBTITLE, tokens), Occur.SHOULD);
-    builder.add(makePhraseQuery(PoetryFieldEnum.TITLE, tokens), Occur.SHOULD);
-    builder.add(makePhraseQuery(PoetryFieldEnum.CONTENT, tokens), Occur.SHOULD);
+    builder.add(makePhraseQuery(DocField.SUBTITLE, tokens), Occur.SHOULD);
+    builder.add(makePhraseQuery(DocField.TITLE, tokens), Occur.SHOULD);
+    builder.add(makePhraseQuery(DocField.CONTENT, tokens), Occur.SHOULD);
 
     return builder.build();
   }
 
-  private String doHighlight(Highlighter highlighter, PoetryFieldEnum poetryFieldEnum, String text)
+  private String doHighlight(Highlighter highlighter, DocField docField, String text)
       throws Exception {
     if (StringUtils.isNotEmpty(text)) {
-      String hl =
-          highlighter.getBestFragment(tokenizer.getAnalyzer(), poetryFieldEnum.fieldName, text);
+      String hl = highlighter.getBestFragment(tokenizer.getAnalyzer(), docField.getName(), text);
       return hl != null ? hl : text;
     }
     return text;

@@ -10,9 +10,9 @@ import java.lang.Character.UnicodeScript;
  * @author zhaoyuyu
  * @since 2020/2/3
  */
-public final class TextUtils {
+public final class TextUtil {
 
-  private TextUtils() {
+  private TextUtil() {
     throw new IllegalStateException();
   }
 
@@ -31,7 +31,7 @@ public final class TextUtils {
     int len = Math.min(content.length(), 128);
     Hasher hasher = Hashing.murmur3_128().newHasher(len);
     for (int i = 0; i < len; ++i) {
-      if (TextUtils.isChineseCharacter(content, i)) {
+      if (isChineseCharacter(content, i)) {
         hasher.putChar(content.charAt(i));
       }
     }

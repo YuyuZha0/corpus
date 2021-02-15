@@ -1,27 +1,25 @@
 package com.github.poetry.entity;
 
-import com.github.poetry.text.TextUtils;
-import lombok.NonNull;
+import com.github.poetry.text.TextUtil;
+import lombok.RequiredArgsConstructor;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexableField;
 
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
  * @author zhaoyuyu
  * @since 2020/2/3
  */
+@RequiredArgsConstructor
 public final class TextFieldStrategy implements FieldStrategy {
 
   private final String name;
   private final Function<? super GeneralChinesePoetry, String> getter;
-
-  public TextFieldStrategy(
-      @NonNull String name, @NonNull Function<? super GeneralChinesePoetry, String> getter) {
-    this.name = name;
-    this.getter = getter;
-  }
+  private final BiConsumer<? super GeneralChinesePoetry, String> setter;
 
   @Override
   public String getName() {
@@ -29,16 +27,19 @@ public final class TextFieldStrategy implements FieldStrategy {
   }
 
   @Override
-  public void appendTo(GeneralChinesePoetry poetry, Document doc) {
+  public void writeDoc(GeneralChinesePoetry poetry, Document doc) {
     String text = getter.apply(poetry);
-    if (TextUtils.isBlank(text)) {
+    if (TextUtil.isBlank(text)) {
       return;
     }
     doc.add(new TextField(getName(), text, Store.YES));
   }
 
   @Override
-  public double getValueAsDouble(Document doc) {
-    throw new UnsupportedOperationException();
+  public void readDoc(Document doc, GeneralChinesePoetry poetry) {
+    IndexableField field = doc.getField(getName());
+    if (field != null) {
+      setter.accept(poetry, field.stringValue());
+    }
   }
 }

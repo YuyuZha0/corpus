@@ -6,7 +6,7 @@ import com.google.common.base.Splitter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,11 +14,11 @@ import java.util.List;
  * @author zhaoyuyu
  * @since 2019/11/27
  */
-public final class TransformUtils {
+public final class TransformUtil {
 
   private static final String LINE_BREAKER = "<br>";
 
-  private TransformUtils() {
+  private TransformUtil() {
     throw new UnsupportedOperationException();
   }
 
@@ -42,8 +42,8 @@ public final class TransformUtils {
     return Joiner.on(LINE_BREAKER).appendTo(builder, paragraphs).toString();
   }
 
-  static String resolveDynastyFromFileName(File file) {
-    String[] a = StringUtils.splitPreserveAllTokens(file.getName(), '.');
+  static String resolveDynastyFromFileName(Path path) {
+    String[] a = StringUtils.splitPreserveAllTokens(path.getFileName().toString(), '.');
     if ("song".equals(a[1])) {
       return "宋";
     } else if ("tang".equals(a[1])) {

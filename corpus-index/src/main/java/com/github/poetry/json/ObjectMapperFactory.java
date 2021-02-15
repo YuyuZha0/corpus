@@ -10,13 +10,10 @@ import java.util.function.Supplier;
  */
 public final class ObjectMapperFactory implements Supplier<ObjectMapper> {
 
-    @Override
-    public ObjectMapper get() {
-        return Holder.INSTANCE.objectMapper;
-    }
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private enum Holder {
-        INSTANCE;
-        final ObjectMapper objectMapper = new ObjectMapper();
-    }
+  @Override
+  public ObjectMapper get() {
+    return OBJECT_MAPPER;
+  }
 }

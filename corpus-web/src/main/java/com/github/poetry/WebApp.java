@@ -7,7 +7,6 @@ import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.logging.SLF4JLogDelegateFactory;
@@ -16,7 +15,15 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.LoggerHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Singleton
@@ -73,28 +80,28 @@ public final class WebApp implements AutoCloseable {
     // BodyHandler 之前不能有任何BlockingHandler,且本身不能Blocking
     router.route("/api/*").handler(BodyHandler.create(false));
     router.route().blockingHandler(LoggerHandler.create());
-    router.route("/api/query-poetry").method(HttpMethod.POST).blockingHandler(poetryQueryHandler);
+    router.post("/api/query-poetry").handler(poetryQueryHandler);
     router.route("/").handler(ctx -> ctx.response().sendFile("webroot/index.html"));
     router
         .route("/static/*")
-        .handler(StaticHandler.create("webroot/static").setDefaultContentEncoding("UTF-8"));
+        .handler(StaticHandler.create("webroot/static").setDefaultContentEncoding("utf-8"));
 
-    Runtime.getRuntime().addShutdownHook(new Thread(vertx::close));
+    Runtime.getRuntime().addShutdownHook(Executors.defaultThreadFactory().newThread(this::close));
 
     httpServer
         .requestHandler(router)
         .listen(port)
-        .onSuccess(
-            s -> {
-              log.info("WebApp started successfully on port : {}", port);
-            });
+        .onSuccess(s -> log.info("WebApp started successfully on port : {}", port));
   }
 
   @Override
   public void close() {
     httpServer.close(
         result -> {
-          if (result.succeeded()) vertx.close();
+          if (result.succeeded()) {
+            log.info("HttpServer shutdown successfully!");
+          }
+          vertx.close();
         });
   }
 }
