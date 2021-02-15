@@ -21,7 +21,7 @@ public enum DocField {
           "content", GeneralChinesePoetry::getContent, GeneralChinesePoetry::setContent)),
   DYNASTY(
       new StringFieldStrategy(
-          "dynasty", GeneralChinesePoetry::getDynasty, GeneralChinesePoetry::setContent)),
+          "dynasty", GeneralChinesePoetry::getDynasty, GeneralChinesePoetry::setDynasty)),
   TYPE(
       new StringFieldStrategy(
           "type", GeneralChinesePoetry::getType, GeneralChinesePoetry::setType)),
