@@ -27,20 +27,20 @@ import java.util.function.Function;
 public final class LuceneFacade implements Function<QueryParams, List<GeneralChinesePoetry>> {
 
   private final IndexSearcher indexSearcher;
-  private final QueryParser queryParser;
+  private final QueryRewriter queryRewriter;
   private final HighlighterFactory highlighterFactory;
 
   @Inject
   public LuceneFacade(
-      IndexSearcher indexSearcher, QueryParser queryParser, HighlighterFactory highlighterFactory) {
+      IndexSearcher indexSearcher, QueryRewriter queryRewriter, HighlighterFactory highlighterFactory) {
     this.indexSearcher = indexSearcher;
-    this.queryParser = queryParser;
+    this.queryRewriter = queryRewriter;
     this.highlighterFactory = highlighterFactory;
   }
 
   @Override
   public List<GeneralChinesePoetry> apply(@NonNull QueryParams queryParams) {
-    Query query = queryParser.apply(queryParams.getQuery());
+    Query query = queryRewriter.apply(queryParams.getQuery());
 
     TopDocs topDocs;
     try {

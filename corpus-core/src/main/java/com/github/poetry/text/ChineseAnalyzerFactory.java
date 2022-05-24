@@ -5,7 +5,6 @@ import com.github.poetry.stop.ClassicChineseStopWordSet;
 import com.github.poetry.stop.HtmlTagSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,7 +30,11 @@ public final class ChineseAnalyzerFactory implements Supplier<Analyzer> {
 
   @Override
   public Analyzer get() {
-    return new StandardAnalyzer(StopWordsHolder.INSTANCE.STOP_WORDS);
+    return new AnsjAnalyzer(
+        Arrays.asList(
+            new ChinesePunctuationSet().get(),
+            new ClassicChineseStopWordSet().get(),
+            new HtmlTagSet().get()));
   }
 
   private enum StopWordsHolder {
