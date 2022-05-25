@@ -1,6 +1,5 @@
 package com.github.poetry.lucene;
 
-import com.google.common.io.CharSource;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -10,6 +9,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,15 +28,15 @@ public final class Tokenizer implements Function<String, List<String>> {
     if (StringUtils.isEmpty(s)) {
       return Collections.emptyList();
     }
-    try (Reader reader = CharSource.wrap(s).openStream()) {
+    try (Reader reader = new StringReader(s)) {
       List<String> result = new ArrayList<>();
-      TokenStream tokenStream = analyzer.tokenStream("", reader);
-      tokenStream.reset();
-      while (tokenStream.incrementToken()) {
-        result.add(tokenStream.getAttribute(CharTermAttribute.class).toString());
+      try (TokenStream tokenStream = analyzer.tokenStream("", reader)) {
+        tokenStream.reset();
+        while (tokenStream.incrementToken()) {
+          result.add(tokenStream.getAttribute(CharTermAttribute.class).toString());
+        }
+        tokenStream.end();
       }
-      tokenStream.end();
-      tokenStream.close();
       return result;
     } catch (IOException e) {
       throw new RuntimeException(e);

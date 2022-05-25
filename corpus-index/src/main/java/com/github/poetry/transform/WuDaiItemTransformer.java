@@ -2,6 +2,7 @@ package com.github.poetry.transform;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.json.WuDaiItem;
+import com.github.poetry.text.TextUtil;
 
 /**
  * @author zhaoyuyu
@@ -14,7 +15,7 @@ public final class WuDaiItemTransformer implements PoetryTransformer<WuDaiItem> 
 
     GeneralChinesePoetry poetry = new GeneralChinesePoetry();
 
-    String[] titles = TransformUtil.splitWithMidDot(wudaiItem.getTitle());
+    String[] titles = TextUtil.splitWithMidDot(wudaiItem.getTitle());
     if (titles.length == 1) {
       poetry.setTitle(titles[0]);
     } else if (titles.length >= 2) {
@@ -23,7 +24,7 @@ public final class WuDaiItemTransformer implements PoetryTransformer<WuDaiItem> 
     }
 
     poetry.setAuthor(wudaiItem.getAuthor());
-    poetry.setContent(TransformUtil.joinParagraphs(wudaiItem.getParagraphs()));
+    poetry.setContent(TextUtil.joinParagraphs(wudaiItem.getParagraphs()));
     poetry.setDynasty("五代十国");
     poetry.setType("词");
     return poetry;

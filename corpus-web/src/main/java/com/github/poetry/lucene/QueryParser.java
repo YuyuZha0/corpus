@@ -30,6 +30,7 @@ import java.util.function.Function;
  * @since 2019/11/21
  */
 @Singleton
+@Deprecated
 public final class QueryParser implements Function<String, Query> {
 
   private static final float TERM_BOOST_FACTOR = 3f;

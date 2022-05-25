@@ -65,9 +65,18 @@ public final class RankingStat implements DoubleSupplier {
     this.google = google;
   }
 
+  private static double sigmoid(int x) {
+    return 1 / (1 + Math.exp(-x));
+  }
+
   @SuppressWarnings("UnstableApiUsage")
   public double calcScore() {
-    return Stats.meanOf(baiduLevel, so360Level, bingLevel, bingEnLevel, googleLevel);
+    return Stats.meanOf(
+        sigmoid(baiduLevel),
+        sigmoid(so360Level),
+        sigmoid(bingLevel),
+        sigmoid(bingEnLevel),
+        sigmoid(googleLevel)) + 0.5D;
   }
 
   @Override

@@ -2,6 +2,7 @@ package com.github.poetry.transform;
 
 import com.github.poetry.entity.GeneralChinesePoetry;
 import com.github.poetry.json.Shi;
+import com.github.poetry.text.TextUtil;
 import lombok.NonNull;
 
 import java.nio.file.Path;
@@ -15,7 +16,7 @@ public final class ShiTransformer implements PoetryTransformer<Shi> {
   private final String dynasty;
 
   public ShiTransformer(@NonNull Path path) {
-    this.dynasty = TransformUtil.resolveDynastyFromFileName(path);
+    this.dynasty = TextUtil.resolveDynastyFromFileName(path);
   }
 
   @Override
@@ -23,7 +24,7 @@ public final class ShiTransformer implements PoetryTransformer<Shi> {
 
     GeneralChinesePoetry poetry = new GeneralChinesePoetry();
 
-    String[] titles = TransformUtil.splitWithBlank(shi.getTitle());
+    String[] titles = TextUtil.splitWithBlank(shi.getTitle());
     if (titles.length == 1) {
       poetry.setTitle(titles[0]);
     } else if (titles.length >= 2) {
@@ -31,7 +32,7 @@ public final class ShiTransformer implements PoetryTransformer<Shi> {
       poetry.setSubtitle(titles[1]);
     }
 
-    poetry.setContent(TransformUtil.joinParagraphs(shi.getParagraphs()));
+    poetry.setContent(TextUtil.joinParagraphs(shi.getParagraphs()));
     poetry.setAuthor(shi.getAuthor());
     poetry.setDynasty(dynasty);
     poetry.setType("诗");

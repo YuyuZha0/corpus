@@ -93,7 +93,7 @@ public final class IndexApp {
         Paths.get(root, "json"),
         Shi.class,
         ShiTransformer::new,
-        name -> name.startsWith("poet") && name.endsWith("json"));
+        name -> name.startsWith("poet.tang") && name.endsWith("json"));
   }
 
   private static PoetrySource createCiSource(String root) {

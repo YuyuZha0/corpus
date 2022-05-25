@@ -1,15 +1,13 @@
 package com.github.poetry.lucene;
 
 import com.github.poetry.entity.DocField;
-import com.github.poetry.entity.TextFieldStrategy;
-import com.github.poetry.stop.ChinesePunctuationSet;
-import com.github.poetry.stop.ClassicChineseStopWordSet;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.ansj.domain.Result;
-import org.ansj.domain.Term;
-import org.ansj.recognition.impl.StopRecognition;
-import org.ansj.splitWord.analysis.IndexAnalysis;
+import com.google.inject.name.Named;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.FunctionScoreQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -21,7 +19,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,24 +34,34 @@ import java.util.regex.Pattern;
 public final class QueryRewriter implements Function<String, Query> {
 
   private static final Pattern HAN_PATTERN = Pattern.compile("[\u4e00-\u9fa5]+");
-  private static final StopRecognition STOP_RECOGNITION = createStopRecognition();
+  private static final float DISJUNCTION_MAX_TIE_BREAKER = 0.15f;
+  private static final Map<String, DocField> VOCAB_DOC_FILED_MAP =
+      ImmutableMap.<String, DocField>builder()
+          .put("唐", DocField.DYNASTY)
+          .put("宋", DocField.DYNASTY)
+          .put("元", DocField.DYNASTY)
+          .put("先秦", DocField.DYNASTY)
+          .put("五代十国", DocField.DYNASTY)
+          .put("诗", DocField.TYPE)
+          .put("词", DocField.TYPE)
+          .put("曲", DocField.TYPE)
+          .build();
 
-  private static StopRecognition createStopRecognition() {
-    StopRecognition stopRecognition = new StopRecognition();
-    stopRecognition.insertStopWords(new ChinesePunctuationSet().get());
-    stopRecognition.insertStopWords(new ClassicChineseStopWordSet().get());
-    return stopRecognition;
+  private final Tokenizer tokenizer;
+
+  @Inject
+  public QueryRewriter(@Named("indexAnalyzer") Analyzer analyzer) {
+    this.tokenizer = new Tokenizer(analyzer);
   }
 
-  private static List<Term> getTerms(String input) {
-    List<Term> terms = new ArrayList<>();
+  private static List<String> getSegments(String input) {
+    List<String> segments = new ArrayList<>();
     Matcher matcher = HAN_PATTERN.matcher(input);
     while (matcher.find()) {
       String m = matcher.group();
-      Result result = IndexAnalysis.parse(m).recognition(STOP_RECOGNITION);
-      terms.addAll(result.getTerms());
+      segments.add(m);
     }
-    return terms;
+    return segments;
   }
 
   private static int phraseQuerySlop(int len) {
@@ -70,48 +80,46 @@ public final class QueryRewriter implements Function<String, Query> {
     }
   }
 
-  private static boolean isNoun(Term term) {
-    String natureStr = term.getNatureStr();
-    return StringUtils.isNotEmpty(natureStr)
-        && natureStr.startsWith("n")
-        && !"null".equals(natureStr);
-  }
-
-  private List<Query> forTerm(List<Term> terms) {
-    String[] tokens = terms.stream().map(Term::getName).toArray(String[]::new);
-    String[] nounTokens =
-        terms.stream().filter(QueryRewriter::isNoun).map(Term::getName).toArray(String[]::new);
-    List<Query> collect = new ArrayList<>();
-    collect.add(makeQuery(DocField.TITLE, tokens));
-    collect.add(makeQuery(DocField.SUBTITLE, tokens));
-    collect.add(makeQuery(DocField.CONTENT, tokens));
-    if (nounTokens.length > 0) {
-      collect.add(makeQuery(DocField.DYNASTY, tokens));
-      collect.add(makeQuery(DocField.AUTHOR, tokens));
-      collect.add(makeQuery(DocField.TYPE, tokens));
-    }
-    return collect;
-  }
-
-  private Query makeQuery(DocField docField, String[] tokens) {
-    if (docField.getStrategy() instanceof TextFieldStrategy) {
-      return new PhraseQuery(phraseQuerySlop(tokens.length), docField.getName(), tokens);
-    }
-    BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
-    for (String token : tokens) {
-      booleanQueryBuilder.add(
-          new TermQuery(new org.apache.lucene.index.Term(docField.getName(), token)), Occur.SHOULD);
-    }
-    return booleanQueryBuilder.build();
-  }
-
   @Override
   public Query apply(String input) {
-    List<Term> terms;
-    if (StringUtils.isBlank(input) || (terms = getTerms(input)).isEmpty()) {
+    List<String> segments;
+    if (StringUtils.isBlank(input) || (segments = getSegments(input)).isEmpty()) {
       return new MatchNoDocsQuery();
     }
-    return wrapWithScore(new DisjunctionMaxQuery(forTerm(terms), 0.15f));
+    if (segments.size() == 1) {
+      return wrapWithScore(forSegment(segments.get(0)));
+    }
+    BooleanQuery.Builder builder = new BooleanQuery.Builder();
+    for (String s : segments) {
+      builder.add(forSegment(s), Occur.MUST);
+    }
+    return wrapWithScore(builder.build());
+  }
+
+  private Query forSegment(String segment) {
+    DocField docField = VOCAB_DOC_FILED_MAP.get(segment);
+    if (docField != null) {
+      return new TermQuery(new Term(docField.getName(), segment));
+    }
+
+    String[] tokens = tokenizer.tokenize(segment).toArray(new String[0]);
+    if (tokens.length == 1) {
+      BooleanQuery.Builder builder = new BooleanQuery.Builder();
+      for (DocField f :
+          Arrays.asList(DocField.CONTENT, DocField.AUTHOR, DocField.TITLE, DocField.SUBTITLE)) {
+        builder.add(new TermQuery(new Term(f.getName(), tokens[0])), Occur.SHOULD);
+      }
+      return builder.build();
+    }
+
+    int slop = phraseQuerySlop(tokens.length);
+    return new DisjunctionMaxQuery(
+        Arrays.asList(
+            new PhraseQuery(slop, DocField.TITLE.getName(), tokens),
+            new PhraseQuery(slop, DocField.SUBTITLE.getName(), tokens),
+            new PhraseQuery(slop, DocField.CONTENT.getName(), tokens),
+            new TermQuery(new Term(DocField.AUTHOR.getName(), segment))),
+        DISJUNCTION_MAX_TIE_BREAKER);
   }
 
   private Query wrapWithScore(Query in) {
